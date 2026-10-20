@@ -1,0 +1,23 @@
+title: Suspicious PowerShell Encoded Command
+id: sigma-powershell-encoded
+status: stable
+level: high
+description: Detects PowerShell commands using encoded or hidden execution
+author: 0xSABRY
+tags:
+  - attack.t1059.001
+  - attack.execution
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  keywords:
+    - "powershell -encodedcommand"
+    - "powershell -e "
+    - "powershell -w hidden"
+    - "powershell -nop -sta"
+    - "powershell.exe -nop"
+  condition: keywords
+falsepositives:
+  - Legitimate admin scripts
+  - Software deployment tools

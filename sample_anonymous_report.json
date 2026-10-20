@@ -1,0 +1,53 @@
+{
+    "tool": "0xSABRY ThreatScope",
+    "generated": "2026-03-03T04:38:01.263341",
+    "file": "C:\\New folder (4)\\Desktop\\New folder\\project logs\\sample_anyonomus login.evtx",
+    "file_size_bytes": 69632,
+    "total_lines": 3,
+    "log_start": "2019-11-15 08:19:02",
+    "log_end": "2019-11-15 08:19:17",
+    "unique_ips": 1,
+    "unique_users": 0,
+    "threat_score": 46,
+    "threat_level": "MEDIUM",
+    "top_ips": [
+        [
+            "127.0.0.1",
+            1
+        ]
+    ],
+    "top_users": [],
+    "event_id_summary": [],
+    "findings_summary": {
+        "anonymous_logon": {
+            "count": 2,
+            "severity": "HIGH",
+            "category": "Authentication",
+            "description": "Anonymous logon detected \u2014 possible unauthenticated access"
+        },
+        "ntlm_downgrade": {
+            "count": 1,
+            "severity": "HIGH",
+            "category": "Auth Protocol Attack",
+            "description": "NTLM downgrade attack detected"
+        }
+    },
+    "findings_detail": {
+        "anonymous_logon": [
+            {
+                "line": 2,
+                "content": "<Event xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"><System><Provider Name=\"Microsoft-Windows-Security-Auditing\" Guid=\"{54849625-5478-4994-a5ba-3e3b0328c30d}\"></Provider>\n<EventID Qualifiers=\"\">4624</EventID>\n<Version>1</Version>\n<Level>0</Level>\n<Task>12544</Task>\n<Opcode>0</Opcode>\n<Keywords>0x8020000000000000</Keywords>\n<TimeCreated SystemTime=\"2019-11-15 08:19:16.102510+00:00\"></TimeCreated>\n<EventRecordID>25049</EventRecordID>\n<Correlation ActivityID=\"\" RelatedActivityID=\"\"></Correlation>\n<Execution ProcessID=\"516\" ThreadID=\"308\"></Execution>\n<Channel>Security</Channel>\n<Computer>alice.insecurebank.local</Computer>\n<Security UserID=\"\"></Security>\n</System>\n<EventData><Data Name=\"SubjectUserSid\">S-1-0-0</Data>\n<Data Name=\"SubjectUserName\">-</Data>\n<Data Name=\"SubjectDomainName\">-</Data>\n<Data Name=\"SubjectLogonId\">0x0000000000000000</Data>\n<Data Name=\"TargetUserSid\">S-1-5-7</Data>\n<Data Name=\"TargetUserName\">ANONYMOUS LOGON</Data>\n<Data Name=\"TargetDomainName\">NT AUTHORITY</Data>\n<Data Name=\"TargetLogonId\">0x0000000001d12916</Data>\n<Data Name=\"LogonType\">3</Data>\n<Data Name=\"LogonProcessName\">NtLmSsp </Data>\n<Data Name=\"AuthenticationPackageName\">NTLM</Data>\n<Data Name=\"WorkstationName\">-</Data>\n<Data Name=\"LogonGuid\">{00000000-0000-0000-0000-000000000000}</Data>\n<Data Name=\"TransmittedServices\">-</Data>\n<Data Name=\"LmPackageName\">NTLM V1</Data>\n<Data Name=\"KeyLength\">128</Data>\n<Data Name=\"ProcessId\">0x0000000000000000</Data>\n<Data Name=\"ProcessName\">-</Data>\n<Data Name=\"IpAddress\">127.0.0.1</Data>\n<Data Name=\"IpPort\">59336</Data>\n<Data Name=\"ImpersonationLevel\">%%1833</Data>\n</EventData>\n</Event>"
+            },
+            {
+                "line": 3,
+                "content": "<Event xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"><System><Provider Name=\"Microsoft-Windows-Security-Auditing\" Guid=\"{54849625-5478-4994-a5ba-3e3b0328c30d}\"></Provider>\n<EventID Qualifiers=\"\">4634</EventID>\n<Version>0</Version>\n<Level>0</Level>\n<Task>12545</Task>\n<Opcode>0</Opcode>\n<Keywords>0x8020000000000000</Keywords>\n<TimeCreated SystemTime=\"2019-11-15 08:19:17.134468+00:00\"></TimeCreated>\n<EventRecordID>25050</EventRecordID>\n<Correlation ActivityID=\"\" RelatedActivityID=\"\"></Correlation>\n<Execution ProcessID=\"516\" ThreadID=\"5300\"></Execution>\n<Channel>Security</Channel>\n<Computer>alice.insecurebank.local</Computer>\n<Security UserID=\"\"></Security>\n</System>\n<EventData><Data Name=\"TargetUserSid\">S-1-5-7</Data>\n<Data Name=\"TargetUserName\">ANONYMOUS LOGON</Data>\n<Data Name=\"TargetDomainName\">NT AUTHORITY</Data>\n<Data Name=\"TargetLogonId\">0x0000000001d12916</Data>\n<Data Name=\"LogonType\">3</Data>\n</EventData>\n</Event>"
+            }
+        ],
+        "ntlm_downgrade": [
+            {
+                "line": 2,
+                "content": "<Event xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"><System><Provider Name=\"Microsoft-Windows-Security-Auditing\" Guid=\"{54849625-5478-4994-a5ba-3e3b0328c30d}\"></Provider>\n<EventID Qualifiers=\"\">4624</EventID>\n<Version>1</Version>\n<Level>0</Level>\n<Task>12544</Task>\n<Opcode>0</Opcode>\n<Keywords>0x8020000000000000</Keywords>\n<TimeCreated SystemTime=\"2019-11-15 08:19:16.102510+00:00\"></TimeCreated>\n<EventRecordID>25049</EventRecordID>\n<Correlation ActivityID=\"\" RelatedActivityID=\"\"></Correlation>\n<Execution ProcessID=\"516\" ThreadID=\"308\"></Execution>\n<Channel>Security</Channel>\n<Computer>alice.insecurebank.local</Computer>\n<Security UserID=\"\"></Security>\n</System>\n<EventData><Data Name=\"SubjectUserSid\">S-1-0-0</Data>\n<Data Name=\"SubjectUserName\">-</Data>\n<Data Name=\"SubjectDomainName\">-</Data>\n<Data Name=\"SubjectLogonId\">0x0000000000000000</Data>\n<Data Name=\"TargetUserSid\">S-1-5-7</Data>\n<Data Name=\"TargetUserName\">ANONYMOUS LOGON</Data>\n<Data Name=\"TargetDomainName\">NT AUTHORITY</Data>\n<Data Name=\"TargetLogonId\">0x0000000001d12916</Data>\n<Data Name=\"LogonType\">3</Data>\n<Data Name=\"LogonProcessName\">NtLmSsp </Data>\n<Data Name=\"AuthenticationPackageName\">NTLM</Data>\n<Data Name=\"WorkstationName\">-</Data>\n<Data Name=\"LogonGuid\">{00000000-0000-0000-0000-000000000000}</Data>\n<Data Name=\"TransmittedServices\">-</Data>\n<Data Name=\"LmPackageName\">NTLM V1</Data>\n<Data Name=\"KeyLength\">128</Data>\n<Data Name=\"ProcessId\">0x0000000000000000</Data>\n<Data Name=\"ProcessName\">-</Data>\n<Data Name=\"IpAddress\">127.0.0.1</Data>\n<Data Name=\"IpPort\">59336</Data>\n<Data Name=\"ImpersonationLevel\">%%1833</Data>\n</EventData>\n</Event>"
+            }
+        ]
+    }
+}
