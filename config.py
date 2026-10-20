@@ -40,6 +40,26 @@ SIGMAHQ_RULES_SUBDIR = "rules"
 SIGMA_SYNC_INTERVAL_DAYS = 7
 
 # ============================================================
+# Sigma regex resource limits (per analysis scan)
+# ============================================================
+# A single catastrophic regex is bounded by the ``regex`` package timeout,
+# but a scan can still evaluate thousands of regexes. These scan-scoped
+# limits cap the aggregate work. They are intentionally conservative and
+# can be tuned with environment variables.
+SIGMA_REGEX_MAX_EVALUATIONS = int(
+    os.environ.get("THREATSCOPE_SIGMA_REGEX_MAX_EVALUATIONS", "10000")
+)
+SIGMA_REGEX_MAX_SECONDS = float(
+    os.environ.get("THREATSCOPE_SIGMA_REGEX_MAX_SECONDS", "30")
+)
+SIGMA_REGEX_TIMEOUT_SECONDS = float(
+    os.environ.get("THREATSCOPE_SIGMA_REGEX_TIMEOUT_SECONDS", "2")
+)
+SIGMA_REGEX_MAX_SUBJECT_LENGTH = int(
+    os.environ.get("THREATSCOPE_SIGMA_REGEX_MAX_SUBJECT_LENGTH", "1000000")
+)
+
+# ============================================================
 # API Keys (configurable via env vars or settings page)
 # ============================================================
 VIRUSTOTAL_API_KEY = os.environ.get("VT_API_KEY", "")
@@ -47,6 +67,42 @@ ABUSEIPDB_API_KEY = os.environ.get("ABUSEIPDB_API_KEY", "")
 OTX_API_KEY = os.environ.get("OTX_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
+
+# ============================================================
+# AI data-handling consent (privacy / exfiltration guard)
+# ============================================================
+# When False (default), NO forensic content is transmitted to external AI
+# services. The AI Copilot/Narrative fall back to the local heuristic engine.
+# Set THREATSCOPE_AI_SEND_DATA=true to explicitly authorise transmission.
+AI_SEND_DATA = os.environ.get("THREATSCOPE_AI_SEND_DATA", "false").lower() == "true"
+
+# Redact sensitive details (absolute paths, encoded blobs) from AI prompts.
+# Set THREATSCOPE_AI_REDACT=false to send raw context when transmission is enabled.
+AI_REDACT_DATA = os.environ.get("THREATSCOPE_AI_REDACT", "true").lower() == "true"
+
+# ============================================================
+# Live-monitor allowed roots
+# ============================================================
+# Directories that /api/live/start may monitor. Overridable with a
+# pathsep-separated THREATSCOPE_MONITOR_ROOTS env var. When unset, a set of
+# well-known log locations plus the uploads/logs directories is used.
+def _default_monitor_roots() -> list:
+    roots = [UPLOAD_DIR, LOG_DIR]
+    if os.name == "nt":
+        system_root = os.environ.get("SystemRoot", r"C:\Windows")
+        roots.append(Path(system_root) / "System32" / "winevt" / "Logs")
+    else:
+        roots.extend([Path("/var/log"), Path("/var/log/journal")])
+    return roots
+
+
+_monitor_roots_env = os.environ.get("THREATSCOPE_MONITOR_ROOTS", "")
+if _monitor_roots_env:
+    LIVE_MONITOR_ALLOWED_ROOTS = [
+        Path(p).expanduser() for p in _monitor_roots_env.split(os.pathsep) if p
+    ]
+else:
+    LIVE_MONITOR_ALLOWED_ROOTS = _default_monitor_roots()
 
 # ============================================================
 # Analysis Settings

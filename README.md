@@ -6,13 +6,13 @@
 
 <p align="center">
   <strong>Advanced DFIR & Threat Detection Platform</strong><br>
-  <em>Open-source forensic analysis tool that eats Chainsaw for breakfast.</em>
+  <em>Open-source forensic analysis and threat detection toolkit.</em>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/SigmaHQ-3000%2B%20Rules-blue?style=flat-square" alt="Sigma Rules"/>
+  <img src="https://img.shields.io/badge/SigmaHQ-Sync-blue?style=flat-square" alt="Sigma Rules"/>
   <img src="https://img.shields.io/badge/MITRE%20ATT%26CK-100%2B%20Techniques-red?style=flat-square" alt="MITRE ATT&CK"/>
   <img src="https://img.shields.io/badge/Detection%20Rules-55%2B%20Categories-purple?style=flat-square" alt="Detection Rules"/>
   <img src="https://img.shields.io/badge/Enterprise%20Modules-6%20New-ff8c00?style=flat-square" alt="Enterprise Modules"/>
@@ -23,7 +23,7 @@
 
 ## 🚀 What is ThreatScope V3.5?
 
-ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designed for SOC analysts, incident responders, and threat hunters. It combines the power of Sigma rules, behavioral chain detection, AI-powered analysis, and multi-platform log parsing into one unified tool — now with **6 enterprise-grade modules** for advanced investigations: causal graph analysis, deep forensic artifact parsing, hypothesis-driven AI investigation, auto-deobfuscation, dynamic rule generation, and purple team MITRE verification.
+ThreatScope V3.5 is a **DFIR and threat detection platform** designed for SOC analysts, incident responders, and threat hunters. It combines Sigma rules, behavioral chain detection, AI-assisted analysis, and multi-platform log parsing into one unified tool — now with **6 enterprise-grade modules** for advanced investigations: causal graph analysis, deep forensic artifact parsing, hypothesis-driven AI investigation, auto-deobfuscation, dynamic rule generation, and purple team MITRE verification.
 
 ### 🆕 What's New in V3.5 — Enterprise Modules
 
@@ -38,7 +38,7 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 
 - 🐧 **Full Linux Log Support** — Dedicated parsers for syslog, auth.log, journald, Apache/Nginx, and firewall logs
 - 📡 **Live Log Monitoring** — Real-time WebSocket-based streaming with instant detection
-- 🛡️ **20+ Built-in YARA Rules** — Malware signatures, webshells, exploit tools, suspicious documents, Linux threats
+- 🛡️ **40+ Built-in YARA Rules** — Malware signatures, webshells, exploit tools, suspicious documents, Linux threats
 - 🎯 **100+ MITRE ATT&CK Techniques** — Full coverage across all 14 tactics with sub-technique resolution
 - ⚔️ **55+ Detection Categories** — 30 new patterns including cloud attacks, cryptojacking, fileless malware, and more
 - 🔐 **Security Hardened** — CSP headers, rate limiting, CSRF protection, input validation, audit logging
@@ -50,8 +50,8 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 
 | Feature | ThreatScope V3.5 | Chainsaw | Others |
 |---------|:-:|:-:|:-:|
-| SigmaHQ Full Integration (3000+ Rules) | ✅ | ✅ | ❌ |
-| YARA Rules Engine (20+ Built-in) | ✅ | ✅ | ❌ |
+| SigmaHQ Integration (3,000+ rules via on-demand sync) | ✅ | ✅ | ❌ |
+| YARA Rules Engine (40+ Built-in) | ✅ | ✅ | ❌ |
 | Behavioral Chain Detection (15 Chains) | ✅ | ❌ | ❌ |
 | Multi-Platform (Win/Linux/Mac/Cloud) | ✅ | ❌ | ❌ |
 | Full Linux Log Parsing (5 Parsers) | ✅ | ❌ | ❌ |
@@ -127,8 +127,8 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 
 ### 🔍 Detection Power
 - **55+ Built-in Detection Categories** — Advanced regex patterns covering cloud, Linux, network, and application attacks
-- **SigmaHQ Integration** — Auto-sync and parse 3000+ Sigma rules with full condition support
-- **YARA Scanning** — 20+ built-in rules for malware, webshells, exploit tools, and suspicious documents
+- **SigmaHQ Integration** — Sync and parse 3,000+ Sigma rules with full condition support (run `python cli.py sync`; rules are fetched into `sigma_rules/` and are not bundled in the repository)
+- **YARA Scanning** — 40+ built-in rules for malware, webshells, exploit tools, and suspicious documents (requires the optional `yara-python` package)
 - **Behavioral Chain Detection** — 15 multi-stage attack patterns with time-window correlation
 - **30 Correlation Rules** — Kill chain analysis and score boosting
 
@@ -177,10 +177,12 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 
 ### 🔐 Security Hardening (V3)
 - Content Security Policy (CSP) headers
-- X-Frame-Options, X-Content-Type-Options, HSTS
+- X-Frame-Options, X-Content-Type-Options
 - In-memory rate limiting per IP with auto-blocking
-- Input validation and path traversal prevention
+- Session-bound CSRF protection on state-changing requests
+- Input validation, path-containment checks, and path traversal prevention
 - File upload magic byte validation
+- AI data-sharing is opt-in and redacted by default (see environment variables below)
 - Audit logging with IP anonymization
 
 ---
@@ -297,8 +299,12 @@ curl -X POST http://127.0.0.1:5000/api/live/start \
 Set these environment variables for full functionality:
 
 ```bash
-# AI Features
+# AI Features (external AI calls are OFF by default)
 export OPENAI_API_KEY="your_key"
+# Opt-in to sending (redacted) session data to the AI provider:
+export THREATSCOPE_AI_SEND_DATA="true"
+# Disable redaction of sensitive values before sending (default: true)
+export THREATSCOPE_AI_REDACT="false"
 
 # Threat Intelligence
 export VT_API_KEY="your_virustotal_key"
@@ -307,6 +313,10 @@ export OTX_API_KEY="your_otx_key"
 
 # Security (optional)
 export FLASK_SECRET_KEY="your_secret_key"
+# Mark sessions Secure + HSTS-style enforcement when served over HTTPS
+export THREATSCOPE_HTTPS="true"
+# Extra directories the live monitor is allowed to tail (os.pathsep-separated)
+export THREATSCOPE_MONITOR_ROOTS="/var/log:/opt/logs"
 ```
 
 ---
@@ -485,6 +495,92 @@ ThreatScope V3.5 maps findings to **100+ MITRE ATT&CK techniques** across all **
 | **ALPHV/BlackCat** | Russia | BlackCat, Noberus |
 
 *Bold = V3 additions*
+
+---
+
+## 🛡️ Sigma Detection Limits & Modifier Compatibility
+
+Sigma evaluation is bounded per analysis. A fresh, isolated context is created
+for every `LogAnalyzer.analyze()` run, so concurrent analyses do not share
+budgets or diagnostics.
+
+| Setting | Env var | Default | Purpose |
+|---------|---------|---------|---------|
+| `SIGMA_REGEX_MAX_EVALUATIONS` | `THREATSCOPE_SIGMA_REGEX_MAX_EVALUATIONS` | `10000` | Max `re` evaluations per scan (across events, rules, values, and encoded candidates) |
+| `SIGMA_REGEX_MAX_SECONDS` | `THREATSCOPE_SIGMA_REGEX_MAX_SECONDS` | `30` | Wall-clock regex budget per scan |
+| `SIGMA_REGEX_TIMEOUT_SECONDS` | `THREATSCOPE_SIGMA_REGEX_TIMEOUT_SECONDS` | `2` | Hard per-pattern timeout |
+| `SIGMA_REGEX_MAX_SUBJECT_LENGTH` | `THREATSCOPE_SIGMA_REGEX_MAX_SUBJECT_LENGTH` | `1000000` | Max text length evaluated by `re`; larger inputs are reported as incomplete, never silently truncated |
+
+When a limit is hit, a rule error occurs, a rule is invalid, or the `regex`
+package is missing, the scan is **incomplete**. Results expose this via:
+
+- `results["detection_complete"]` — `false` means the absence of a finding is not proof of a clean source
+- `results["sigma_diagnostics"]` — reasons, counters, and bounded samples
+- `results["sigma_stats"]["scan"]` — the same summary from `SigmaEngine.get_stats(context)`
+- the generated text report prints an `INCOMPLETE DETECTION` warning
+
+Diagnostic logging is rate-limited process-wide: each message key emits at most
+5 records per 60-second window plus one suppression notice, so a malformed rule
+or event cannot flood the log. Exact counts are unaffected and remain in the
+scan diagnostics; suppression totals are exposed via
+`sigma_stats["log_limiter"]`.
+
+When the optional `PyYAML` dependency is missing the engine reports
+`available: false`, `load_status: "yaml_unavailable"`, and `loaded: 0`; it
+never claims rules were loaded or evaluated, and `get_stats()`/`match_event()`
+remain safe to call.
+
+**Supported modifiers:** `contains`, `startswith`, `endswith`, `re`
+(with `i`/`m`/`s` flags), `base64`, `base64offset`, `wide`, `utf16`,
+`utf16le`, `utf16be`, `windash`, `cidr`, `cased`, `exists`, `gt`, `gte`,
+`lt`, `lte`, `all`, `neq`.
+
+**Explicitly rejected:** `fieldref`, `expand`, timestamp-part modifiers, and
+any unknown modifier. Invalid rules are loaded for visibility but are skipped
+during matching and listed in `sigma_stats["invalid_rules"]`.
+
+Behavior changes from earlier builds:
+
+- A terminal encoding modifier (`|wide`, `|utf16`, `|utf16le`, `|utf16be`)
+  is invalid; add `|contains` or a base64 stage instead of relying on silent
+  substring behavior.
+- `|base64` is an exact-value transformation that keeps RFC 4648 padding. Use
+  `|base64|contains` to match an encoded fragment; rules relying on the old
+  implicit substring/unpadded match must add `|contains` (and account for
+  padding).
+- `windash` expands only parameter separators matching `\B[-/]\b` (not
+  mid-word dashes), supports `-`, `/`, en dash, em dash, and horizontal bar,
+  and skips expansion for values with more than 3 eligible separators.
+- `startswith|re`, `endswith|re`, and `contains|re` are rejected rather than
+  silently ignoring one of the matchers.
+- `re` is case-sensitive by default; use `|re|i` for case-insensitive matching.
+
+A curated conformance corpus lives in `tests/fixtures/sigma/` with assertions in
+`tests/test_sigma_conformance.py` (valid/invalid rules, condition operators,
+string and encoding modifiers, `windash`, `cased`/`exists`/`neq`/numeric/`cidr`,
+regex flags, and unsupported combinations). It separates YAML
+parsing/validation compatibility from event-matching compatibility.
+
+An optional, version-aware pySigma cross-check
+(`tests/test_sigma_pysigma_crosscheck.py`) additionally compares rule parsing,
+modifier legality, and value-transformation semantics against pySigma when the
+test-only `sigma` package is installed (`requirements-dev.txt`); it is skipped
+otherwise. pySigma is used only for parsing/semantics - it does **not** verify
+event matching, so no full matching equivalence is claimed. See
+`tests/fixtures/sigma/README.md` for the documented deviations.
+
+---
+
+## 🧪 Testing
+
+The regression suite covers the Sigma engine, behavioral chains, correlation, parsers, security helpers, and exporters.
+
+```bash
+pip install pytest
+python -m pytest
+```
+
+Tests run automatically on push/PR via GitHub Actions (`.github/workflows/ci.yml`).
 
 ---
 

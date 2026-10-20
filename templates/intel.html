@@ -57,18 +57,18 @@ async function enrichIOCs() {
     const btn = document.getElementById('enrich-btn');
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enriching...';
     try {
-        const resp = await fetch('/api/enrich', {method: 'POST'});
+        const resp = await csrfFetch('/api/enrich', {method: 'POST'});
         const data = await resp.json();
         const container = document.getElementById('enrichment-results');
-        if (data.error) { container.innerHTML = '<p class="text-danger">' + data.error + '</p>'; return; }
+        if (data.error) { container.innerHTML = '<p class="text-danger">' + escapeHtml(data.error) + '</p>'; return; }
         let html = '<div class="enrichment-summary">';
-        html += '<p>Enriched <strong>' + data.summary.total_enriched + '</strong> IOCs</p>';
-        if (data.summary.malicious_count > 0) html += '<p class="text-critical">🔴 ' + data.summary.malicious_count + ' Malicious</p>';
-        if (data.summary.suspicious_count > 0) html += '<p class="text-warning">🟡 ' + data.summary.suspicious_count + ' Suspicious</p>';
+        html += '<p>Enriched <strong>' + escapeHtml(data.summary.total_enriched) + '</strong> IOCs</p>';
+        if (data.summary.malicious_count > 0) html += '<p class="text-critical">🔴 ' + escapeHtml(data.summary.malicious_count) + ' Malicious</p>';
+        if (data.summary.suspicious_count > 0) html += '<p class="text-warning">🟡 ' + escapeHtml(data.summary.suspicious_count) + ' Suspicious</p>';
         html += '</div><div class="enrichment-details">';
         for (const [ioc, result] of Object.entries(data.enrichment || {})) {
             const cls = result.verdict === 'malicious' ? 'text-critical' : result.verdict === 'suspicious' ? 'text-warning' : 'text-success';
-            html += '<div class="enrichment-item"><code>' + ioc + '</code> — <span class="' + cls + '">' + result.verdict + '</span> (Score: ' + result.risk_score + ')</div>';
+            html += '<div class="enrichment-item"><code>' + escapeHtml(ioc) + '</code> — <span class="' + cls + '">' + escapeHtml(result.verdict) + '</span> (Score: ' + escapeHtml(result.risk_score) + ')</div>';
         }
         html += '</div>';
         container.innerHTML = html;
@@ -80,18 +80,18 @@ async function runAPTMapping() {
     const btn = document.getElementById('apt-btn');
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mapping...';
     try {
-        const resp = await fetch('/api/apt-map', {method: 'POST'});
+        const resp = await csrfFetch('/api/apt-map', {method: 'POST'});
         const data = await resp.json();
         const container = document.getElementById('apt-results');
         if (!data.matches?.length) { container.innerHTML = '<p class="text-muted">No APT group matches found.</p>'; return; }
         let html = '<div class="apt-matches">';
         data.matches.forEach(m => {
-            html += '<div class="apt-match-card"><div class="apt-header"><span class="apt-name">' + m.group + '</span>';
-            html += '<span class="apt-confidence">' + m.confidence + '% confidence</span>';
-            html += '<span class="apt-country"><i class="fas fa-globe"></i> ' + m.country + '</span></div>';
-            html += '<p class="apt-desc">' + m.description + '</p>';
-            html += '<p class="apt-aliases">Aliases: ' + m.aliases.join(', ') + '</p>';
-            html += '<p class="apt-techniques">Matched: ' + m.matched_count + ' techniques</p></div>';
+            html += '<div class="apt-match-card"><div class="apt-header"><span class="apt-name">' + escapeHtml(m.group) + '</span>';
+            html += '<span class="apt-confidence">' + escapeHtml(m.confidence) + '% confidence</span>';
+            html += '<span class="apt-country"><i class="fas fa-globe"></i> ' + escapeHtml(m.country) + '</span></div>';
+            html += '<p class="apt-desc">' + escapeHtml(m.description) + '</p>';
+            html += '<p class="apt-aliases">Aliases: ' + escapeHtml((m.aliases || []).join(', ')) + '</p>';
+            html += '<p class="apt-techniques">Matched: ' + escapeHtml(m.matched_count) + ' techniques</p></div>';
         });
         container.innerHTML = html + '</div>';
     } catch(e) { showToast('APT mapping failed: ' + e.message, 'error'); }

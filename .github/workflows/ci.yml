@@ -1,54 +1,36 @@
-name: ThreatScope CI
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: ["**"]
   pull_request:
-    branches: [ main ]
 
 jobs:
-  validate:
+  test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Syntax Check
-      run: python -c "import py_compile; py_compile.compile('0xSABRY_ThreatScope.py', doraise=True); print('✅ Syntax OK')"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest flask pyyaml requests bleach reportlab regex
 
-    - name: Validate Detection Rules
-      run: |
-        python -c "
-        import re, importlib.util
-        spec = importlib.util.spec_from_file_location('ts', '0xSABRY_ThreatScope.py')
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        errors = 0
-        for name, rule in mod.PATTERNS.items():
-            for p in rule['patterns']:
-                try:
-                    re.compile(p)
-                except re.error as e:
-                    print(f'❌ Regex error in {name}: {e}')
-                    errors += 1
-            for field in ('severity', 'weight', 'category', 'desc'):
-                if field not in rule:
-                    print(f'❌ Missing {field} in {name}')
-                    errors += 1
-        if errors:
-            raise SystemExit(f'{errors} errors found')
-        print(f'✅ All {len(mod.PATTERNS)} rules validated')
-        "
+      - name: Install test-only dependencies (pySigma cross-check)
+        run: pip install -r requirements-dev.txt
 
-    - name: CLI Smoke Test
-      run: |
-        python 0xSABRY_ThreatScope.py -f "sample_anyonomus login.evtx" -j /tmp/test_report.json
-        python -c "import json; d=json.load(open('/tmp/test_report.json')); assert d['version']=='3.0.0'; assert d['threat_score']>0; print('✅ CLI test passed')"
+      - name: Byte-compile all sources
+        run: python -m compileall -q .
+
+      - name: Run test suite
+        run: python -m pytest -q

@@ -1,0 +1,20 @@
+title: Suspicious Process Creation
+id: 11111111-1111-1111-1111-111111111111
+status: test
+description: Conformance fixture - valid rule using endswith and contains.
+author: ThreatScope tests
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    Image|endswith: '\cmd.exe'
+    CommandLine|contains: 'whoami'
+  condition: selection
+fields:
+  - Image
+  - CommandLine
+level: high
+tags:
+  - attack.execution
+  - attack.t1059.003

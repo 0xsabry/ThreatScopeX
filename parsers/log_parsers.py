@@ -8,6 +8,7 @@ All parsers normalize events into a common schema.
 """
 
 import re
+import os
 import json
 import struct
 import logging
@@ -186,15 +187,29 @@ class EVTXParser:
         Extracts text content from the binary EVTX format.
         """
         events = []
+        max_bytes = 100 * 1024 * 1024
+        max_events = 50000
         try:
+            try:
+                size = os.path.getsize(filepath)
+            except OSError:
+                size = 0
+            if size > max_bytes:
+                logger.warning(
+                    f"EVTX file {filepath} is {size} bytes; capping native read at "
+                    f"{max_bytes} bytes to bound memory use"
+                )
             with open(filepath, "rb") as f:
-                data = f.read()
+                data = f.read(max_bytes)
 
             # Find XML-like content in the binary
             text = data.decode("utf-8", errors="replace")
             lines = text.split("\n")
 
             for i, line in enumerate(lines):
+                if len(events) >= max_events:
+                    logger.warning(f"EVTX native parse capped at {max_events} events")
+                    break
                 line = line.strip()
                 if not line:
                     continue
@@ -449,9 +464,16 @@ class CloudTrailParser:
             with open(filepath, "r") as f:
                 data = json.load(f)
 
-            records = data.get("Records", data if isinstance(data, list) else [data])
+            if isinstance(data, list):
+                records = data
+            elif isinstance(data, dict):
+                records = data.get("Records") or data.get("records") or [data]
+            else:
+                records = []
 
             for i, record in enumerate(records, 1):
+                if not isinstance(record, dict):
+                    continue
                 fields = {
                     "eventName": record.get("eventName", ""),
                     "eventSource": record.get("eventSource", ""),
@@ -498,9 +520,16 @@ class AzureActivityParser:
             with open(filepath, "r") as f:
                 data = json.load(f)
 
-            records = data.get("value", data if isinstance(data, list) else [data])
+            if isinstance(data, list):
+                records = data
+            elif isinstance(data, dict):
+                records = data.get("value") or data.get("records") or [data]
+            else:
+                records = []
 
             for i, record in enumerate(records, 1):
+                if not isinstance(record, dict):
+                    continue
                 fields = {
                     "operationName": record.get("operationName", {}).get("value", "")
                         if isinstance(record.get("operationName"), dict)

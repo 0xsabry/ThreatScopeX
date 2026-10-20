@@ -1,0 +1,19 @@
+# ============================================================
+# ThreatScopeX - Development / test-only dependencies
+#
+# NOT required to run ThreatScopeX. Install only for development:
+#     pip install -r requirements.txt -r requirements-dev.txt
+# ============================================================
+
+# Test runner used by the application suite.
+pytest>=8.0
+
+# Optional pySigma cross-check for the curated Sigma conformance corpus.
+# Used only by tests/test_sigma_pysigma_crosscheck.py (parse/semantic
+# verification). It is never imported by ThreatScopeX at runtime.
+#
+# pySigma 2.x requires Python >=3.11; on Python 3.10 the resolver selects the
+# newest compatible 1.5.x release. The 1.x/2.x differences in `utf16|base64`
+# byte-order-mark handling and `windash` expansion are handled explicitly in
+# that test module.
+pySigma>=1.5.1,<3

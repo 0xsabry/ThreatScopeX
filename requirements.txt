@@ -17,6 +17,11 @@ python-evtx>=0.7.4
 # YAML (Sigma rules)
 PyYAML>=6.0
 
+# Bounded regex execution for Sigma `re` rules (ReDoS protection).
+# The stdlib `re` engine cannot bound execution time; the `re` modifier is
+# skipped with a diagnostic if this package is absent.
+regex>=2023.0
+
 # HTTP Requests (Threat Intel APIs)
 requests>=2.31.0
 
@@ -40,3 +45,7 @@ Werkzeug>=3.0.0
 
 # V3 — HTML Sanitization
 bleach>=6.0.0
+
+# Desktop GUI
+customtkinter>=5.2.0
+packaging>=23.0

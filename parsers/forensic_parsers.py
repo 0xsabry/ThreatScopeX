@@ -310,16 +310,31 @@ class PrefetchParser:
 
     @staticmethod
     def _decompress_mam(data: bytes) -> Optional[bytes]:
-        """Attempt to decompress MAM-compressed prefetch data."""
+        """
+        Attempt to decompress MAM-compressed prefetch data.
+
+        Output is capped to avoid decompression bombs (a small crafted payload
+        expanding to gigabytes and exhausting memory).
+        """
+        max_output = 64 * 1024 * 1024
         try:
             import lznt1  # type: ignore
-            return lznt1.decompress(data[8:])
+            out = lznt1.decompress(data[8:])
+            if isinstance(out, (bytes, bytearray)) and len(out) > max_output:
+                logger.warning("MAM (lznt1) output exceeds cap; truncating")
+                return bytes(out[:max_output])
+            return out
         except ImportError:
             pass
-        # Fallback: try zlib
+        except Exception:
+            pass
+        # Fallback: zlib with a hard output cap
         try:
             import zlib
-            return zlib.decompress(data[8:])
+            dobj = zlib.decompressobj()
+            out = dobj.decompress(data[8:], max_output)
+            if out:
+                return out
         except Exception:
             pass
         return None
@@ -548,8 +563,32 @@ class MFTParser:
         }
 
     @staticmethod
-    def _parse_timestamp(ts_str: str) -> Optional[datetime]:
-        """Parse various timestamp formats to datetime."""
+    def _parse_timestamp(ts_str) -> Optional[datetime]:
+        """
+        Parse various timestamp formats to a naive ``datetime``.
+
+        Handles ISO-8601 (including ``Z`` and timezone offsets) plus the
+        formats emitted by common MFT/artifact tools. Fractional seconds with
+        more than 6 digits (e.g. Windows 7-digit FILETIME precision) are
+        truncated so parsing does not fail.
+        """
+        if not ts_str:
+            return None
+        if isinstance(ts_str, datetime):
+            return ts_str.replace(tzinfo=None) if ts_str.tzinfo else ts_str
+
+        s = str(ts_str).strip()
+        if not s:
+            return None
+
+        norm = s.replace("Z", "+00:00").replace("z", "+00:00")
+        norm = re.sub(r"(\.\d{6})\d+", r"\1", norm)
+        try:
+            dt = datetime.fromisoformat(norm)
+            return dt.replace(tzinfo=None) if dt.tzinfo else dt
+        except ValueError:
+            pass
+
         for fmt in [
             "%Y-%m-%d %H:%M:%S.%f",
             "%Y-%m-%d %H:%M:%S",
@@ -559,7 +598,7 @@ class MFTParser:
             "%m/%d/%Y %I:%M:%S %p",
         ]:
             try:
-                return datetime.strptime(ts_str.strip(), fmt)
+                return datetime.strptime(s, fmt)
             except ValueError:
                 continue
         return None

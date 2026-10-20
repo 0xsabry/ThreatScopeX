@@ -6,6 +6,36 @@
  */
 
 // ============================================================
+// Security helpers
+// ============================================================
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+// Escape untrusted text before inserting into HTML.
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// fetch() wrapper that attaches the CSRF token to state-changing requests.
+function csrfFetch(url, options = {}) {
+    const opts = Object.assign({}, options);
+    const method = (opts.method || 'GET').toUpperCase();
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        opts.headers = Object.assign({}, opts.headers, {
+            'X-CSRF-Token': getCsrfToken()
+        });
+    }
+    return fetch(url, opts);
+}
+
+// ============================================================
 // Sidebar Toggle
 // ============================================================
 function toggleSidebar() {
@@ -66,7 +96,7 @@ async function uploadFile(file) {
     formData.append('file', file);
 
     try {
-        const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+        const resp = await csrfFetch('/api/upload', { method: 'POST', body: formData });
         const data = await resp.json();
 
         if (data.error) {
@@ -80,7 +110,7 @@ async function uploadFile(file) {
         updateStatus('Analyzing');
 
         // Auto-analyze
-        const analyzeResp = await fetch('/api/analyze', {
+        const analyzeResp = await csrfFetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filepath: data.filepath })
@@ -113,7 +143,7 @@ async function uploadFile(file) {
 async function exportReport(format) {
     showToast(`Exporting ${format.toUpperCase()} report...`, 'info');
     try {
-        const resp = await fetch(`/api/export/${format}`, { method: 'POST' });
+        const resp = await csrfFetch(`/api/export/${format}`, { method: 'POST' });
         if (!resp.ok) {
             const err = await resp.json();
             showToast(err.error || 'Export failed', 'error');
