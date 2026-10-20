@@ -1,0 +1,16 @@
+title: Windash Parameter Abuse
+id: 33333333-3333-3333-3333-333333333333
+status: test
+description: Conformance fixture - valid windash rule with contains.
+author: ThreatScope tests
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|windash|contains: '-encodedcommand'
+  condition: selection
+level: high
+tags:
+  - attack.execution
+  - attack.t1059.001

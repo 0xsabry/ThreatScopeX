@@ -273,42 +273,95 @@ class BehavioralChainEngine:
         )
         self.events.append(event)
 
+    @staticmethod
+    def _parse_timestamp(value) -> Optional[datetime]:
+        """
+        Parse a timestamp from findings/timeline into a naive ``datetime``.
+
+        Accepts ``datetime`` objects and the common ISO-8601 / log formats.
+        Returns ``None`` when the value cannot be parsed (instead of silently
+        dropping the whole feed on the first bad record).
+        """
+        if isinstance(value, datetime):
+            return value.replace(tzinfo=None) if value.tzinfo else value
+        if not isinstance(value, str) or not value.strip():
+            return None
+
+        s = value.strip()
+        try:
+            return datetime.fromisoformat(s.replace("Z", "+00:00").replace("z", "+00:00")).replace(tzinfo=None)
+        except ValueError:
+            pass
+
+        for fmt, length in (
+            ("%Y-%m-%dT%H:%M:%S.%f", 26),
+            ("%Y-%m-%dT%H:%M:%S", 19),
+            ("%Y-%m-%d %H:%M:%S.%f", 26),
+            ("%Y-%m-%d %H:%M:%S", 19),
+            ("%d/%b/%Y:%H:%M:%S", 20),
+        ):
+            try:
+                return datetime.strptime(s[:length], fmt)
+            except (ValueError, TypeError):
+                continue
+        return None
+
+    @staticmethod
+    def _derive_labels(category: str, entry: dict) -> List[str]:
+        """
+        Build the label set for a finding/timeline entry.
+
+        Stage labels are snake_case rule identifiers (e.g. ``brute_force``),
+        which match the analyzer's builtin rule IDs and the ``category`` /
+        ``rule_id`` values carried by findings.
+        """
+        labels = set()
+        if category:
+            labels.add(str(category).lower())
+        rule_id = entry.get("rule_id")
+        if rule_id:
+            labels.add(str(rule_id).lower())
+        return list(labels)
+
     def add_events_from_findings(self, findings: Dict[str, list], timeline: List[dict]):
         """
         Bulk add events from analysis findings and timeline.
+
+        Findings are preferred (they carry ``rule_id`` and ``timestamp``);
+        timeline entries are only used when no findings are available so that
+        events are not double-counted (which would inflate ``min_count``).
 
         Args:
             findings: Category -> list of findings from the analyzer.
             timeline: Chronological list of timeline events.
         """
-        for entry in timeline:
-            ts_str = entry.get("timestamp", "")
-            labels = []
-            if entry.get("category"):
-                labels.append(entry["category"])
-            if entry.get("rule_id"):
-                labels.append(entry["rule_id"])
-
-            try:
-                if isinstance(ts_str, str) and ts_str:
-                    for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S",
-                                "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%SZ"]:
-                        try:
-                            ts = datetime.strptime(ts_str[:19], fmt[:len(ts_str[:19])+2])
-                            break
-                        except ValueError:
-                            continue
-                    else:
-                        continue
-                elif isinstance(ts_str, datetime):
-                    ts = ts_str
-                else:
+        added = 0
+        for category, finding_list in (findings or {}).items():
+            for finding in finding_list or []:
+                ts = self._parse_timestamp(finding.get("timestamp"))
+                if ts is None:
                     continue
+                self.add_event(
+                    ts,
+                    self._derive_labels(category, finding),
+                    raw_data=finding,
+                    line_number=finding.get("line_number", 0),
+                )
+                added += 1
 
-                self.add_event(ts, labels, raw_data=entry,
-                              line_number=entry.get("line_number", 0))
-            except Exception:
+        if added:
+            return
+
+        for entry in timeline or []:
+            ts = self._parse_timestamp(entry.get("timestamp"))
+            if ts is None:
                 continue
+            self.add_event(
+                ts,
+                self._derive_labels(entry.get("category", ""), entry),
+                raw_data=entry,
+                line_number=entry.get("line_number", 0),
+            )
 
     def analyze(self) -> List[dict]:
         """
@@ -351,53 +404,59 @@ class BehavioralChainEngine:
         if len(stages) < 2:
             return []
 
-        # Find first-stage events
+        # Find first-stage events and walk the chain forward in time.
+        n_events = len(self.events)
         for i, event in enumerate(self.events):
-            if self._event_matches_stage(event, stages[0]):
-                # Check subsequent stages within the time window
-                chain_evidence = [event]
-                current_stage = 1
+            if not self._event_matches_stage(event, stages[0]):
+                continue
 
-                for j in range(i + 1, len(self.events)):
-                    candidate = self.events[j]
+            chain_evidence: List[TimeWindowEvent] = []
+            current_stage = 0
+            stage_count = 0
+            window_start = event.timestamp
 
-                    # Check time window
-                    if candidate.timestamp - event.timestamp > window:
-                        break
+            for j in range(i, n_events):
+                candidate = self.events[j]
 
-                    if current_stage < len(stages) and \
-                       self._event_matches_stage(candidate, stages[current_stage]):
-                        chain_evidence.append(candidate)
+                # Enforce the chain's time window
+                if candidate.timestamp - window_start > window:
+                    break
+
+                if self._event_matches_stage(candidate, stages[current_stage]):
+                    chain_evidence.append(candidate)
+                    stage_count += 1
+                    required = int(stages[current_stage].get("min_count", 1) or 1)
+                    if stage_count >= required:
                         current_stage += 1
+                        stage_count = 0
 
-                        if current_stage >= len(stages):
-                            # Full chain matched
-                            match = {
-                                "chain_id": chain["id"],
-                                "name": chain["name"],
-                                "description": chain["description"],
-                                "severity": chain["severity"],
-                                "confidence": chain["confidence"],
-                                "mitre_chain": chain.get("mitre_chain", []),
-                                "window_minutes": chain.get("window_minutes", self.default_window),
-                                "start_time": chain_evidence[0].timestamp.isoformat(),
-                                "end_time": chain_evidence[-1].timestamp.isoformat(),
-                                "duration_seconds": (
-                                    chain_evidence[-1].timestamp - chain_evidence[0].timestamp
-                                ).total_seconds(),
-                                "stages_matched": len(stages),
-                                "evidence": [
-                                    {
-                                        "timestamp": e.timestamp.isoformat(),
-                                        "labels": list(e.labels),
-                                        "line_number": e.line_number,
-                                        "preview": str(e.raw_data.get("raw", ""))[:200],
-                                    }
-                                    for e in chain_evidence
-                                ],
+                if current_stage >= len(stages):
+                    match = {
+                        "chain_id": chain["id"],
+                        "name": chain["name"],
+                        "description": chain["description"],
+                        "severity": chain["severity"],
+                        "confidence": chain["confidence"],
+                        "mitre_chain": chain.get("mitre_chain", []),
+                        "window_minutes": chain.get("window_minutes", self.default_window),
+                        "start_time": chain_evidence[0].timestamp.isoformat(),
+                        "end_time": chain_evidence[-1].timestamp.isoformat(),
+                        "duration_seconds": (
+                            chain_evidence[-1].timestamp - chain_evidence[0].timestamp
+                        ).total_seconds(),
+                        "stages_matched": len(stages),
+                        "evidence": [
+                            {
+                                "timestamp": e.timestamp.isoformat(),
+                                "labels": list(e.labels),
+                                "line_number": e.line_number,
+                                "preview": str(e.raw_data.get("raw", ""))[:200],
                             }
-                            matches.append(match)
-                            break
+                            for e in chain_evidence
+                        ],
+                    }
+                    matches.append(match)
+                    break
 
         return matches
 

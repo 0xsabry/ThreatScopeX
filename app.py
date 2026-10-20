@@ -27,6 +27,7 @@ from config import (
     VERSION, APP_NAME, FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
     SECRET_KEY, UPLOAD_DIR, EXPORT_DIR, MITRE_TACTICS,
     OPENAI_API_KEY, VIRUSTOTAL_API_KEY, ABUSEIPDB_API_KEY, OTX_API_KEY,
+    AI_SEND_DATA, LIVE_MONITOR_ALLOWED_ROOTS,
 )
 from core.analyzer import LogAnalyzer
 from core.sigma_engine import SigmaEngine
@@ -35,7 +36,7 @@ from core.realtime_monitor import RealtimeMonitor
 from core.live_monitor import LiveLogMonitor
 from core.security import (
     InputValidator, RateLimiter, SecureFileHandler,
-    SecurityHeaders, AuditLogger,
+    SecurityHeaders, AuditLogger, CSRFProtection,
 )
 from intel.enrichment import ThreatIntelEnrichment
 from intel.apt_mapper import APTMapper, CVEFeed, get_technique_name
@@ -54,6 +55,9 @@ app.secret_key = SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500MB max upload
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Only require Secure cookies when the operator terminates TLS; forcing it on
+# plain-HTTP localhost would silently drop the session cookie.
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("THREATSCOPE_HTTPS", "false").lower() == "true"
 
 # Ensure directories exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -93,6 +97,33 @@ def check_rate_limit():
                 "error": "Rate limit exceeded",
                 "retry_after": info.get("retry_after", 60),
             }), 429
+
+
+@app.before_request
+def enforce_csrf():
+    """
+    Require a valid session-bound CSRF token on state-changing API requests.
+
+    The token is delivered to the SPA via a <meta> tag (see base.html) and
+    echoed back in the X-CSRF-Token header. Safe methods are exempt.
+    """
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return None
+    if not request.path.startswith("/api/"):
+        return None
+    provided = request.headers.get(CSRFProtection.HEADER_NAME)
+    if not CSRFProtection.validate(session, provided):
+        audit_log.log_security_event(
+            request.remote_addr or "", "csrf_rejected", f"path={request.path}"
+        )
+        return jsonify({"error": "CSRF validation failed"}), 403
+    return None
+
+
+@app.context_processor
+def inject_csrf_token():
+    """Expose a CSRF token to templates for the client to echo back."""
+    return {"csrf_token": CSRFProtection.get_token(session)}
 
 ALLOWED_EXTENSIONS = {".log", ".txt", ".evtx", ".json", ".csv", ".syslog", ".xml"}
 
@@ -194,15 +225,30 @@ def upload_file():
     if not allowed_file(file.filename):
         return jsonify({"error": f"Unsupported file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"}), 400
 
+    client_ip = request.remote_addr or ""
     filename = secure_filename(file.filename)
-    filepath = UPLOAD_DIR / filename
-    file.save(str(filepath))
 
+    # Save through the hardened handler (validates filename + containment).
+    ok, result = secure_files.safe_save_upload(file, filename)
+    if not ok:
+        audit_log.log_upload(client_ip, filename, 0, False)
+        return jsonify({"error": result}), 400
+
+    # Verify the content matches the extension (rejects disguised binaries).
+    valid, err = InputValidator.validate_file_magic(result, ALLOWED_EXTENSIONS)
+    if not valid:
+        Path(result).unlink(missing_ok=True)
+        audit_log.log_upload(client_ip, filename, 0, False)
+        return jsonify({"error": err}), 400
+
+    filepath = Path(result)
+    size = filepath.stat().st_size
+    audit_log.log_upload(client_ip, filename, size, True)
     return jsonify({
         "status": "success",
         "filename": filename,
         "filepath": str(filepath),
-        "size": filepath.stat().st_size,
+        "size": size,
     })
 
 
@@ -212,7 +258,12 @@ def run_analysis():
     data = request.get_json() or {}
     filepath = data.get("filepath", "")
 
-    if not filepath or not Path(filepath).exists():
+    # Confine analysis to the upload directory (prevents arbitrary file read).
+    valid, err = InputValidator.validate_filepath(filepath, UPLOAD_DIR)
+    if not valid or not Path(filepath).is_file():
+        audit_log.log_security_event(
+            request.remote_addr or "", "path_traversal_blocked", f"path={filepath!r}"
+        )
         return jsonify({"error": "File not found"}), 400
 
     try:
@@ -227,6 +278,7 @@ def run_analysis():
         copilot.set_context(results)
         training.set_context(results)
 
+        audit_log.log_analysis(request.remote_addr or "", filepath, results["threat_score"])
         return jsonify({
             "status": "success",
             "threat_score": results["threat_score"],
@@ -342,25 +394,28 @@ def export_report(format_type):
 
     try:
         if format_type == "json":
-            path = str(EXPORT_DIR / f"threatscope_report_{timestamp}.json")
-            export_json(results, path)
+            path = export_json(results, str(EXPORT_DIR / f"threatscope_report_{timestamp}.json"))
         elif format_type == "csv":
-            path = str(EXPORT_DIR / f"threatscope_report_{timestamp}.csv")
-            export_csv(results, path)
+            path = export_csv(results, str(EXPORT_DIR / f"threatscope_report_{timestamp}.csv"))
         elif format_type == "stix":
-            path = str(EXPORT_DIR / f"threatscope_stix_{timestamp}.json")
-            export_stix(results, path)
+            path = export_stix(results, str(EXPORT_DIR / f"threatscope_stix_{timestamp}.json"))
         elif format_type == "pdf":
-            path = str(EXPORT_DIR / f"threatscope_report_{timestamp}.pdf")
-            export_pdf(results, path)
+            path = export_pdf(results, str(EXPORT_DIR / f"threatscope_report_{timestamp}.pdf"))
         elif format_type == "docx":
-            path = str(EXPORT_DIR / f"threatscope_report_{timestamp}.docx")
-            export_docx(results, path)
+            path = export_docx(results, str(EXPORT_DIR / f"threatscope_report_{timestamp}.docx"))
         else:
             return jsonify({"error": f"Unknown format: {format_type}"}), 400
 
+        # export_pdf/export_docx may fall back to .txt/.json when optional deps
+        # are missing; honour the path they actually returned.
+        if not path or not Path(path).is_file():
+            audit_log.log_export(request.remote_addr or "", format_type, False)
+            return jsonify({"error": "Export failed"}), 500
+
+        audit_log.log_export(request.remote_addr or "", format_type, True)
         return send_file(path, as_attachment=True)
     except Exception as e:
+        audit_log.log_export(request.remote_addr or "", format_type, False)
         return jsonify({"error": str(e)}), 500
 
 
@@ -414,6 +469,17 @@ def api_live_start():
 
     # Validate path
     path = InputValidator.sanitize_string(path, max_length=1024)
+
+    # Confine monitoring to an allow-list of log roots (prevents arbitrary
+    # file read/disclosure through the live alert feed).
+    valid, err = InputValidator.validate_path_within_roots(
+        path, LIVE_MONITOR_ALLOWED_ROOTS
+    )
+    if not valid:
+        audit_log.log_security_event(
+            request.remote_addr or "", "monitor_path_rejected", f"path={path!r}"
+        )
+        return jsonify({"error": err}), 403
 
     target = Path(path)
     if target.is_dir():

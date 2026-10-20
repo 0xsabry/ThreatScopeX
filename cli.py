@@ -28,7 +28,40 @@ def setup_logging(verbose: bool = False):
     )
 
 
+def enable_utf8_output():
+    """
+    Force UTF-8 console output so banner/report glyphs don't raise
+    UnicodeEncodeError on Windows terminals using a legacy code page.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
+def _utf8_capable() -> bool:
+    """Return True when stdout can encode the banner's box-drawing glyphs."""
+    enc = (getattr(sys.stdout, "encoding", "") or "").lower()
+    if enc in ("utf-8", "utf8", "cp65001"):
+        return True
+    try:
+        "╔═║🛡️".encode(enc or "ascii")
+        return True
+    except Exception:
+        return False
+
+
 def print_banner():
+    if not _utf8_capable():
+        print(f"""
+\033[36m+==================================================+
+|  {APP_NAME} V{VERSION}
+|  Advanced DFIR & Threat Detection Platform
+|  by 0xSABRY
++==================================================+\033[0m
+""")
+        return
     print(f"""
 \033[36m╔══════════════════════════════════════════════════╗
 ║  🛡️  {APP_NAME} V{VERSION}                              ║
@@ -129,6 +162,7 @@ def cmd_web(args):
 
 
 def main():
+    enable_utf8_output()
     print_banner()
 
     parser = argparse.ArgumentParser(

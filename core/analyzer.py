@@ -489,6 +489,9 @@ class LogAnalyzer:
         self.sigma_rules_loaded = 0
         self.analysis_complete = False
         self.analysis_timestamp = None
+        # Per-analysis Sigma scan context (regex budget + diagnostics). Created
+        # fresh in ``analyze`` so concurrent analyses never share budget state.
+        self.sigma_scan_context = None
 
     def load(self, filepath: str = None):
         """
@@ -539,8 +542,24 @@ class LogAnalyzer:
 
         logger.info(f"Analyzing {len(self.events)} events...")
 
+        # One isolated scan context per analysis enforces the regex budget and
+        # collects diagnostics across every event.
+        self.sigma_scan_context = (
+            self.sigma_engine.new_scan_context()
+            if self.sigma_engine.available
+            else None
+        )
+
         for event in self.events:
             self._analyze_event(event)
+
+        # YARA scan on the input file (all formats, not just binaries, so
+        # log files containing malware strings are also matched)
+        if self.filepath and self.yara_engine.available and self.yara_engine.compiled_rules:
+            try:
+                self._register_yara_findings(self.yara_engine.scan_file(str(self.filepath)))
+            except Exception as e:
+                logger.debug(f"YARA scan failed for {self.filepath}: {e}")
 
         # Run correlation analysis
         self.correlation_engine.correlate(self.findings)
@@ -553,10 +572,6 @@ class LogAnalyzer:
         for category in list(self.findings.keys()):
             filtered, suppressed = self.fp_suppressor.filter_findings(self.findings[category])
             self.findings[category] = filtered
-
-        # YARA scan on the original file
-        if self.filepath and self.filepath.suffix.lower() in ('.exe', '.dll', '.bin', '.dmp'):
-            self.yara_engine.scan_file(str(self.filepath))
 
         self.analysis_complete = True
         self.analysis_timestamp = datetime.now(timezone.utc).isoformat()
@@ -643,7 +658,9 @@ class LogAnalyzer:
 
         # Run Sigma rules
         if self.sigma_engine.available and self.sigma_engine.rules:
-            sigma_matches = self.sigma_engine.match_event(event)
+            sigma_matches = self.sigma_engine.match_event(
+                event, self.sigma_scan_context
+            )
             for match in sigma_matches:
                 finding = {
                     "rule_id": match.get("rule_id", ""),
@@ -671,6 +688,49 @@ class LogAnalyzer:
                     "line_number": event.get("line_number", 0),
                     "raw": raw[:300],
                 })
+
+    def _register_yara_findings(self, matches: List[dict]):
+        """
+        Convert YARA scan matches into analyzer findings/timeline entries.
+
+        Args:
+            matches: Match dictionaries returned by the YARA engine.
+        """
+        weight_map = {"critical": 40, "high": 25, "medium": 15, "low": 5}
+        for match in matches or []:
+            rule_name = match.get("rule_name", "yara_rule")
+            meta = match.get("meta", {}) or {}
+            severity = match.get("severity", "medium")
+            mitre = meta.get("mitre", meta.get("technique", ""))
+            description = meta.get("description", meta.get("desc", "YARA rule matched"))
+
+            finding = {
+                "rule_id": rule_name,
+                "rule_type": "yara",
+                "title": f"YARA: {rule_name}",
+                "description": description,
+                "severity": severity,
+                "weight": weight_map.get(severity, 15),
+                "mitre": mitre,
+                "line_number": 0,
+                "raw": str(match.get("strings_matched", ""))[:500],
+                "timestamp": "",
+                "yara_rule_file": match.get("rule_file", ""),
+            }
+            cat_key = f"yara_{rule_name}"
+            self.findings[cat_key].append(finding)
+
+            if mitre:
+                self.mitre_hits[mitre] += 1
+
+            self.timeline.append({
+                "timestamp": "",
+                "category": cat_key,
+                "title": finding["title"],
+                "severity": severity,
+                "line_number": 0,
+                "raw": finding["raw"][:300],
+            })
 
     def calculate_threat_score(self) -> int:
         """
@@ -749,6 +809,13 @@ class LogAnalyzer:
         # Sort timeline
         self.timeline.sort(key=lambda t: t.get("timestamp", ""))
 
+        sigma_diagnostics = (
+            self.sigma_scan_context.summary()
+            if self.sigma_scan_context is not None
+            else {}
+        )
+        detection_complete = sigma_diagnostics.get("complete", True)
+
         return {
             "metadata": {
                 "filepath": str(self.filepath) if self.filepath else "",
@@ -758,6 +825,7 @@ class LogAnalyzer:
                 "time_range": {"start": self.start_time, "end": self.end_time},
                 "sigma_rules_loaded": self.sigma_rules_loaded,
                 "yara_rules_loaded": self.yara_engine.rule_count,
+                "detection_complete": detection_complete,
             },
             "threat_score": score,
             "threat_level": level,
@@ -787,7 +855,13 @@ class LogAnalyzer:
             "top_event_ids": self.event_id_counter.most_common(20),
             "fp_stats": self.fp_suppressor.get_stats(),
             "yara": self.yara_engine.get_summary(),
-            "sigma_stats": self.sigma_engine.get_stats() if self.sigma_engine.available else {},
+            "sigma_stats": (
+                self.sigma_engine.get_stats(self.sigma_scan_context)
+                if self.sigma_engine.available
+                else {}
+            ),
+            "sigma_diagnostics": sigma_diagnostics,
+            "detection_complete": detection_complete,
         }
 
     def generate_report(self) -> str:
@@ -815,6 +889,19 @@ class LogAnalyzer:
             f"  Behavioral Chains: {results['summary']['behavioral_chains']}",
             "=" * 70,
         ]
+
+        if not results.get("detection_complete", True):
+            reasons = ", ".join(
+                results.get("sigma_diagnostics", {}).get("reasons", [])
+            ) or "unknown"
+            lines.extend([
+                "  *** INCOMPLETE DETECTION ***",
+                "  Some Sigma evaluations could not be completed (regex budget,",
+                "  timeout, oversized subject, or rule errors). The absence of a",
+                "  finding does NOT mean the source is clean.",
+                f"  Reasons: {reasons}",
+                "=" * 70,
+            ])
 
         # Top findings
         if results["findings"]:

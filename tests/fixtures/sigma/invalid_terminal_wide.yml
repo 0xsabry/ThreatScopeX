@@ -1,0 +1,12 @@
+title: Terminal Wide Encoding
+id: 55555555-5555-5555-5555-555555555555
+status: test
+description: Conformance fixture - encoding chain terminating in wide is invalid.
+author: ThreatScope tests
+logsource:
+  product: windows
+detection:
+  selection:
+    CommandLine|wide: 'cmd'
+  condition: selection
+level: medium

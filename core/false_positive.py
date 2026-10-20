@@ -140,9 +140,22 @@ class FalsePositiveSuppressor:
             self.suppressed_count += 1
         return suppress, prob
 
+    def _matches_whitelist(self, finding: dict) -> bool:
+        """Return True if the finding matches any operator-supplied whitelist pattern."""
+        if not self.whitelisted_patterns:
+            return False
+        haystack = " ".join(
+            str(finding.get(key, ""))
+            for key in ("raw", "title", "description", "category", "rule_id")
+        ).lower()
+        return any(p and p.lower() in haystack for p in self.whitelisted_patterns)
+
     def filter_findings(self, findings: List[dict]) -> Tuple[List[dict], List[dict]]:
         """
         Filter a list of findings, separating real alerts from likely FPs.
+
+        Findings matching an explicitly whitelisted pattern are always
+        suppressed; otherwise the learned FP probability is used.
 
         Args:
             findings: List of finding dictionaries.
@@ -156,6 +169,14 @@ class FalsePositiveSuppressor:
         for finding in findings:
             rule_id = finding.get("rule_id", finding.get("category", ""))
             context = finding.get("source_ip", finding.get("hostname", ""))
+
+            if self._matches_whitelist(finding):
+                finding["fp_probability"] = 1.0
+                finding["suppressed"] = True
+                finding["whitelisted"] = True
+                self.suppressed_count += 1
+                suppressed.append(finding)
+                continue
 
             should_suppress, prob = self.should_suppress(rule_id, context)
 

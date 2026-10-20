@@ -679,16 +679,19 @@ class FirewallLogParser:
         ts_match = self.TIMESTAMP_RE.search(line)
         timestamp = ts_match.group(1) if ts_match else ""
 
-        # Try iptables pattern
+        # Try iptables pattern first, then fall back to the UFW pattern.
         m = self.IPTABLES_PATTERN.search(line)
+        is_iptables = m is not None
         if not m:
             m = self.UFW_PATTERN.search(line)
             if not m:
                 return None  # Not a firewall log line
 
-        # Extract based on which pattern matched
-        if m.lastindex and m.lastindex >= 10:
-            # Full iptables pattern
+        # Extract based on which pattern matched. ``lastindex`` is unreliable
+        # here because trailing groups are optional, so track the pattern
+        # explicitly instead of inferring it from the match object.
+        if is_iptables:
+            # Full iptables/nftables pattern
             ufw_action = m.group(1) or ""
             chain = m.group(2) or ""
             in_iface = m.group(3) or ""

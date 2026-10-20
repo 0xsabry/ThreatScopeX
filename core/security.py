@@ -13,6 +13,7 @@ Centralized security controls for the ThreatScope platform:
 import os
 import re
 import time
+import hmac
 import hashlib
 import logging
 import secrets
@@ -23,6 +24,24 @@ from collections import defaultdict
 from functools import wraps
 
 logger = logging.getLogger("threatscope.security")
+
+
+def is_within(child: Path, base: Path) -> bool:
+    """
+    Return True only if ``child`` resolves to ``base`` or a path inside it.
+
+    Uses ``os.path.commonpath`` on the fully resolved absolute paths so that
+    sibling directories sharing a prefix (e.g. ``/uploads`` vs ``/uploads_evil``)
+    are correctly rejected. This replaces a naive ``str.startswith`` check.
+    """
+    try:
+        child_resolved = Path(child).resolve()
+        base_resolved = Path(base).resolve()
+        common = os.path.commonpath([str(child_resolved), str(base_resolved)])
+        return common == str(base_resolved)
+    except (ValueError, OSError):
+        # Different drives on Windows raise ValueError; treat as not contained.
+        return False
 
 
 # ============================================================
@@ -116,13 +135,52 @@ class InputValidator:
             allowed = allowed_base.resolve()
 
             # Ensure the resolved path is under the allowed base
-            if not str(resolved).startswith(str(allowed)):
+            if not is_within(resolved, allowed):
                 logger.warning(f"Path escape attempt: {resolved} not under {allowed}")
                 return False, "Path outside allowed directory"
 
             return True, ""
         except Exception as e:
             return False, f"Invalid path: {e}"
+
+    @staticmethod
+    def validate_path_within_roots(
+        filepath: str, allowed_roots: list, require_file: bool = False
+    ) -> Tuple[bool, str]:
+        """
+        Validate that a path resolves inside at least one allowed root directory.
+
+        Unlike :meth:`validate_filepath`, this accepts a set of permitted roots
+        (used for live-monitoring of well-known log locations) while still
+        rejecting traversal and out-of-tree paths.
+
+        Args:
+            filepath: The path supplied by the caller.
+            allowed_roots: Iterable of base directories the path must reside in.
+            require_file: When True, also require the target to be a regular file.
+
+        Returns:
+            Tuple of (is_valid, error_message_if_invalid).
+        """
+        if not filepath or not isinstance(filepath, str):
+            return False, "Empty or invalid filepath"
+
+        for pattern in InputValidator.PATH_TRAVERSAL_PATTERNS:
+            if pattern in filepath:
+                logger.warning(f"Path traversal attempt: {filepath!r}")
+                return False, "Path traversal detected"
+
+        target = Path(filepath)
+        if require_file and not target.is_file():
+            return False, "Path is not a regular file"
+        if not target.exists():
+            return False, "Path not found"
+
+        if not any(is_within(target, root) for root in allowed_roots):
+            logger.warning(f"Path outside allowed monitor roots: {target}")
+            return False, "Path outside allowed directories"
+
+        return True, ""
 
     @staticmethod
     def validate_cve_id(cve_id: str) -> Tuple[bool, str]:
@@ -329,7 +387,7 @@ class SecureFileHandler:
         resolved = safe_path.resolve()
 
         # Ensure we're still in the upload directory
-        if not str(resolved).startswith(str(self.upload_dir)):
+        if not is_within(resolved, self.upload_dir):
             logger.warning(f"Upload path escape: {resolved}")
             return False, "Invalid upload path"
 
@@ -367,7 +425,7 @@ class SecureFileHandler:
         safe_path = self.export_dir / result
         resolved = safe_path.resolve()
 
-        if not str(resolved).startswith(str(self.export_dir)):
+        if not is_within(resolved, self.export_dir):
             return False, "Invalid export path"
 
         return True, str(resolved)
@@ -507,3 +565,43 @@ class AuditLogger:
         if len(parts) == 4:
             return f"{parts[0]}.{parts[1]}.{parts[2]}.xxx"
         return ip[:len(ip)//2] + "***"
+
+
+# ============================================================
+# CSRF Protection (session-bound synchronizer token)
+# ============================================================
+class CSRFProtection:
+    """
+    Minimal, dependency-free CSRF protection using a session-bound
+    synchronizer token compared in constant time.
+
+    The token is generated once per session and must be echoed by the
+    client in the ``X-CSRF-Token`` header for state-changing requests.
+    """
+
+    SESSION_KEY = "_csrf_token"
+    HEADER_NAME = "X-CSRF-Token"
+
+    @classmethod
+    def get_token(cls, flask_session) -> str:
+        """Return (creating if necessary) the CSRF token for this session."""
+        token = flask_session.get(cls.SESSION_KEY)
+        if not token:
+            token = secrets.token_urlsafe(32)
+            flask_session[cls.SESSION_KEY] = token
+        return token
+
+    @classmethod
+    def validate(cls, flask_session, provided_token: Optional[str]) -> bool:
+        """
+        Constant-time comparison of the provided token against the session token.
+
+        Returns True when the token is present and matches; False otherwise.
+        """
+        expected = flask_session.get(cls.SESSION_KEY)
+        if not expected or not provided_token:
+            return False
+        try:
+            return hmac.compare_digest(str(expected), str(provided_token))
+        except (TypeError, ValueError):
+            return False

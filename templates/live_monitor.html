@@ -190,7 +190,7 @@
 
         fetch('/api/live/start', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
             body: JSON.stringify({path: path})
         })
         .then(r => r.json())
@@ -212,7 +212,7 @@
     }
 
     function stopMonitor() {
-        fetch('/api/live/stop', {method: 'POST'})
+        fetch('/api/live/stop', {method: 'POST', headers: {'X-CSRF-Token': getCsrfToken()}})
         .then(r => r.json())
         .then(data => {
             document.getElementById('btn-start').disabled = false;
@@ -276,26 +276,28 @@
 
     function createAlertEntry(alert) {
         const div = document.createElement('div');
-        div.className = `alert-entry ${alert.severity}`;
-        div.dataset.severity = alert.severity;
+        const allowedSeverity = ['critical', 'high', 'medium', 'low'];
+        const sev = allowedSeverity.includes(alert.severity) ? alert.severity : 'low';
+        div.className = `alert-entry ${sev}`;
+        div.dataset.severity = sev;
 
         const severityColors = {
             critical: 'var(--critical)', high: 'var(--danger)',
             medium: 'var(--warning)', low: 'var(--accent)'
         };
-        const sevColor = severityColors[alert.severity] || 'var(--text-muted)';
+        const sevColor = severityColors[sev] || 'var(--text-muted)';
         const time = alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : '';
 
         div.innerHTML = `
             <div class="alert-header">
-                <span class="alert-severity" style="color: ${sevColor};">● ${alert.severity}</span>
-                <span class="alert-time">${time}</span>
+                <span class="alert-severity" style="color: ${sevColor};">● ${escapeHtml(sev)}</span>
+                <span class="alert-time">${escapeHtml(time)}</span>
             </div>
             <div class="alert-title">${escapeHtml(alert.category || alert.rule_id)}</div>
             <div class="alert-detail">${escapeHtml(alert.description || '')}</div>
             ${alert.mitre ? `<div class="alert-mitre">MITRE: ${escapeHtml(alert.mitre)}</div>` : ''}
             <div class="alert-detail" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.2rem;">
-                📄 ${escapeHtml(alert.source_file || '')} : L${alert.line_number || '?'}
+                📄 ${escapeHtml(alert.source_file || '')} : L${escapeHtml(alert.line_number || '?')}
             </div>
         `;
         return div;

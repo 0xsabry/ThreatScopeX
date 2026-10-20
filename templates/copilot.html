@@ -60,7 +60,7 @@ async function sendCopilotMessage() {
     sendBtn.disabled = true;
 
     try {
-        const resp = await fetch('/api/copilot', {
+        const resp = await csrfFetch('/api/copilot', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({question, mode: copilotMode})
@@ -78,7 +78,7 @@ async function generateNarrative() {
     const btn = document.getElementById('narrative-btn');
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
     try {
-        const resp = await fetch('/api/narrative', {method: 'POST'});
+        const resp = await csrfFetch('/api/narrative', {method: 'POST'});
         const data = await resp.json();
         addChatMessage(data.narrative || data.error || 'No narrative generated', 'bot');
     } catch(e) { addChatMessage('Error: ' + e.message, 'bot'); }
@@ -90,7 +90,7 @@ function addChatMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = 'chat-message ' + sender;
     const icon = sender === 'user' ? 'fa-user' : 'fa-robot';
-    msg.innerHTML = '<div class="message-avatar"><i class="fas ' + icon + '"></i></div><div class="message-content"><p>' + text.replace(/\n/g, '<br>') + '</p></div>';
+    msg.innerHTML = '<div class="message-avatar"><i class="fas ' + icon + '"></i></div><div class="message-content"><p>' + escapeHtml(text).replace(/\n/g, '<br>') + '</p></div>';
     container.appendChild(msg);
     container.scrollTop = container.scrollHeight;
 }

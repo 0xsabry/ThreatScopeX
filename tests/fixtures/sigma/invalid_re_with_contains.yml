@@ -1,0 +1,12 @@
+title: Conflicting Regex and Contains
+id: 66666666-6666-6666-6666-666666666666
+status: test
+description: Conformance fixture - contains combined with re is invalid.
+author: ThreatScope tests
+logsource:
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|re: 'foo'
+  condition: selection
+level: low

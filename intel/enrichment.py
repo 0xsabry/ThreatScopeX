@@ -8,14 +8,31 @@ Rate-limited, cached lookups with inline results display.
 
 import json
 import time
+import base64
 import logging
 import hashlib
 from pathlib import Path
+from urllib.parse import quote
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from collections import defaultdict
 
 logger = logging.getLogger("threatscope.intel")
+
+
+def _url_segment(value: str) -> str:
+    """Percent-encode a value so it cannot alter the request path/query."""
+    return quote(str(value), safe="")
+
+
+def _virustotal_url_id(url: str) -> str:
+    """
+    Compute the VirusTotal v3 URL identifier for a URL.
+
+    VT uses the URL-safe base64 encoding of the URL (padding stripped), not a
+    SHA-256 digest.
+    """
+    return base64.urlsafe_b64encode(url.encode("utf-8")).decode("ascii").rstrip("=")
 
 try:
     import requests
@@ -174,13 +191,14 @@ class ThreatIntelEnrichment:
         """Query VirusTotal API v3."""
         try:
             headers = {"x-apikey": self.vt_key}
+            segment = _url_segment(value)
             type_map = {
-                "ipv4": f"https://www.virustotal.com/api/v3/ip_addresses/{value}",
-                "domain": f"https://www.virustotal.com/api/v3/domains/{value}",
-                "md5": f"https://www.virustotal.com/api/v3/files/{value}",
-                "sha1": f"https://www.virustotal.com/api/v3/files/{value}",
-                "sha256": f"https://www.virustotal.com/api/v3/files/{value}",
-                "url": f"https://www.virustotal.com/api/v3/urls/{hashlib.sha256(value.encode()).hexdigest()}",
+                "ipv4": f"https://www.virustotal.com/api/v3/ip_addresses/{segment}",
+                "domain": f"https://www.virustotal.com/api/v3/domains/{segment}",
+                "md5": f"https://www.virustotal.com/api/v3/files/{segment}",
+                "sha1": f"https://www.virustotal.com/api/v3/files/{segment}",
+                "sha256": f"https://www.virustotal.com/api/v3/files/{segment}",
+                "url": f"https://www.virustotal.com/api/v3/urls/{_virustotal_url_id(value)}",
             }
             url = type_map.get(ioc_type)
             if not url:
@@ -239,13 +257,14 @@ class ThreatIntelEnrichment:
         """Query AlienVault OTX API."""
         try:
             headers = {"X-OTX-API-KEY": self.otx_key}
+            segment = _url_segment(value)
             type_map = {
-                "ipv4": f"https://otx.alienvault.com/api/v1/indicators/IPv4/{value}/general",
-                "domain": f"https://otx.alienvault.com/api/v1/indicators/domain/{value}/general",
-                "md5": f"https://otx.alienvault.com/api/v1/indicators/file/{value}/general",
-                "sha1": f"https://otx.alienvault.com/api/v1/indicators/file/{value}/general",
-                "sha256": f"https://otx.alienvault.com/api/v1/indicators/file/{value}/general",
-                "url": f"https://otx.alienvault.com/api/v1/indicators/url/{value}/general",
+                "ipv4": f"https://otx.alienvault.com/api/v1/indicators/IPv4/{segment}/general",
+                "domain": f"https://otx.alienvault.com/api/v1/indicators/domain/{segment}/general",
+                "md5": f"https://otx.alienvault.com/api/v1/indicators/file/{segment}/general",
+                "sha1": f"https://otx.alienvault.com/api/v1/indicators/file/{segment}/general",
+                "sha256": f"https://otx.alienvault.com/api/v1/indicators/file/{segment}/general",
+                "url": f"https://otx.alienvault.com/api/v1/indicators/url/{segment}/general",
             }
             url = type_map.get(ioc_type)
             if not url:

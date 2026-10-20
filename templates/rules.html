@@ -57,11 +57,11 @@ async function syncSigma() {
     const status = document.getElementById('sync-status');
     status.innerHTML = '<p class="text-accent">Cloning SigmaHQ repository... This may take a few minutes.</p>';
     try {
-        const resp = await fetch('/api/sigma-sync', {method: 'POST'});
+        const resp = await csrfFetch('/api/sigma-sync', {method: 'POST'});
         const data = await resp.json();
-        if (data.error) { status.innerHTML = '<p class="text-danger">Error: ' + (data.errors?.join(', ') || data.error) + '</p>'; }
-        else { status.innerHTML = '<p class="text-success">✅ Synced ' + data.rules_total + ' rules (' + data.rules_added + ' new, ' + data.rules_updated + ' updated)</p>'; }
-    } catch(e) { status.innerHTML = '<p class="text-danger">Sync failed: ' + e.message + '</p>'; }
+        if (data.error) { status.innerHTML = '<p class="text-danger">Error: ' + escapeHtml(data.errors?.join(', ') || data.error) + '</p>'; }
+        else { status.innerHTML = '<p class="text-success">✅ Synced ' + escapeHtml(data.rules_total) + ' rules (' + escapeHtml(data.rules_added) + ' new, ' + escapeHtml(data.rules_updated) + ' updated)</p>'; }
+    } catch(e) { status.innerHTML = '<p class="text-danger">Sync failed: ' + escapeHtml(e.message) + '</p>'; }
     finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> Sync from SigmaHQ'; }
 }
 </script>

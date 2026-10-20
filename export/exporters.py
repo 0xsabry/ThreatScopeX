@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from xml.sax.saxutils import escape as _xml_escape
 
 logger = logging.getLogger("threatscope.export")
 
@@ -101,6 +102,10 @@ def export_stix(results: dict, filepath: str) -> str:
     """
     stix_objects = []
 
+    def _stix_escape(value) -> str:
+        """Escape a value for safe inclusion in a STIX pattern string."""
+        return str(value).replace("\\", "\\\\").replace("'", "\\'")
+
     # Identity object
     identity_id = f"identity--{uuid.uuid5(uuid.NAMESPACE_DNS, 'threatscope')}"
     stix_objects.append({
@@ -110,7 +115,7 @@ def export_stix(results: dict, filepath: str) -> str:
         "created": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "modified": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "name": "ThreatScope V2",
-        "identity_class": "tool",
+        "identity_class": "system",
     })
 
     iocs = results.get("iocs", {})
@@ -118,6 +123,7 @@ def export_stix(results: dict, filepath: str) -> str:
 
     # IP indicators
     for ip in iocs.get("top_ips", []):
+        safe_ip = _stix_escape(ip)
         obj_id = f"indicator--{uuid.uuid5(uuid.NAMESPACE_DNS, f'ip:{ip}')}"
         stix_objects.append({
             "type": "indicator",
@@ -126,17 +132,20 @@ def export_stix(results: dict, filepath: str) -> str:
             "created": now,
             "modified": now,
             "name": f"Suspicious IP: {ip}",
-            "pattern": f"[ipv4-addr:value = '{ip}']",
+            "pattern": f"[ipv4-addr:value = '{safe_ip}']",
             "pattern_type": "stix",
             "valid_from": now,
             "indicator_types": ["malicious-activity"],
             "created_by_ref": identity_id,
         })
 
-    # Hash indicators
+    # Hash indicators (STIX hashing algorithm names differ from Sigma labels)
+    hash_algorithm = {"md5": "MD5", "sha1": "SHA-1", "sha256": "SHA-256"}
     for hash_type in ["md5", "sha1", "sha256"]:
         hashes = iocs.get("hashes", {}).get(hash_type, [])
+        algorithm = hash_algorithm[hash_type]
         for h in hashes[:20]:
+            safe_h = _stix_escape(h)
             obj_id = f"indicator--{uuid.uuid5(uuid.NAMESPACE_DNS, f'{hash_type}:{h}')}"
             stix_objects.append({
                 "type": "indicator",
@@ -144,8 +153,8 @@ def export_stix(results: dict, filepath: str) -> str:
                 "id": obj_id,
                 "created": now,
                 "modified": now,
-                "name": f"File Hash ({hash_type.upper()}): {h[:16]}...",
-                "pattern": f"[file:hashes.'{hash_type.upper()}' = '{h}']",
+                "name": f"File Hash ({algorithm}): {h[:16]}...",
+                "pattern": f"[file:hashes.'{algorithm}' = '{safe_h}']",
                 "pattern_type": "stix",
                 "valid_from": now,
                 "indicator_types": ["malicious-activity"],
@@ -154,6 +163,7 @@ def export_stix(results: dict, filepath: str) -> str:
 
     # Domain indicators
     for domain in iocs.get("top_domains", []):
+        safe_domain = _stix_escape(domain)
         obj_id = f"indicator--{uuid.uuid5(uuid.NAMESPACE_DNS, f'domain:{domain}')}"
         stix_objects.append({
             "type": "indicator",
@@ -162,7 +172,7 @@ def export_stix(results: dict, filepath: str) -> str:
             "created": now,
             "modified": now,
             "name": f"Suspicious Domain: {domain}",
-            "pattern": f"[domain-name:value = '{domain}']",
+            "pattern": f"[domain-name:value = '{safe_domain}']",
             "pattern_type": "stix",
             "valid_from": now,
             "indicator_types": ["malicious-activity"],
@@ -171,6 +181,7 @@ def export_stix(results: dict, filepath: str) -> str:
 
     # URL indicators
     for url in iocs.get("urls", [])[:20]:
+        safe_url = _stix_escape(url)
         obj_id = f"indicator--{uuid.uuid5(uuid.NAMESPACE_DNS, f'url:{url}')}"
         stix_objects.append({
             "type": "indicator",
@@ -179,7 +190,7 @@ def export_stix(results: dict, filepath: str) -> str:
             "created": now,
             "modified": now,
             "name": f"Suspicious URL: {url[:50]}...",
-            "pattern": f"[url:value = '{url}']",
+            "pattern": f"[url:value = '{safe_url}']",
             "pattern_type": "stix",
             "valid_from": now,
             "indicator_types": ["malicious-activity"],
@@ -262,7 +273,7 @@ def export_pdf(results: dict, filepath: str) -> str:
     story.append(Paragraph("DFIR Analysis Report", heading_style))
     story.append(Spacer(1, 10*mm))
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", body_style))
-    story.append(Paragraph(f"File: {results.get('metadata', {}).get('filepath', 'N/A')}", body_style))
+    story.append(Paragraph(f"File: {_xml_escape(str(results.get('metadata', {}).get('filepath', 'N/A')))}", body_style))
     story.append(Paragraph(f"Analyzer: 0xSABRY ThreatScope V2", body_style))
     story.append(PageBreak())
 
@@ -318,11 +329,11 @@ def export_pdf(results: dict, filepath: str) -> str:
     story.append(Paragraph("Indicators of Compromise", heading_style))
     iocs = results.get("iocs", {})
     if iocs.get("top_ips"):
-        story.append(Paragraph(f"<b>Top IPs:</b> {', '.join(iocs['top_ips'][:10])}", body_style))
+        story.append(Paragraph(f"<b>Top IPs:</b> {_xml_escape(', '.join(str(v) for v in iocs['top_ips'][:10]))}", body_style))
     if iocs.get("top_domains"):
-        story.append(Paragraph(f"<b>Top Domains:</b> {', '.join(iocs['top_domains'][:10])}", body_style))
+        story.append(Paragraph(f"<b>Top Domains:</b> {_xml_escape(', '.join(str(v) for v in iocs['top_domains'][:10]))}", body_style))
     if iocs.get("cves"):
-        story.append(Paragraph(f"<b>CVEs Found:</b> {', '.join(iocs['cves'][:10])}", body_style))
+        story.append(Paragraph(f"<b>CVEs Found:</b> {_xml_escape(', '.join(str(v) for v in iocs['cves'][:10]))}", body_style))
 
     doc.build(story)
     logger.info(f"PDF report exported to {filepath}")

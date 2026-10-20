@@ -309,12 +309,17 @@ class CorrelationEngine:
             self.rules.extend(custom_rules)
         self.triggered_correlations: List[dict] = []
 
-    def correlate(self, findings: Dict[str, list]) -> List[dict]:
+    def correlate(self, findings: Dict[str, list],
+                  time_window_minutes: Optional[int] = None) -> List[dict]:
         """
         Run correlation analysis against all findings.
 
         Args:
             findings: Dictionary mapping category names to lists of individual findings.
+            time_window_minutes: When provided, a correlation only fires if the
+                findings for its required categories occur within this many
+                minutes of each other. When ``None``, category presence alone is
+                sufficient (legacy behaviour), matching prior behaviour exactly.
 
         Returns:
             List of triggered correlation results with metadata.
@@ -324,21 +329,29 @@ class CorrelationEngine:
 
         for rule in self.rules:
             required = set(rule["requires"])
-            if required.issubset(detected_categories):
-                correlation_result = {
-                    "id": rule["id"],
-                    "name": rule["name"],
-                    "severity": rule["severity"],
-                    "score_boost": rule["score_boost"],
-                    "description": rule["desc"],
-                    "matched_categories": list(required),
-                    "mitre_chain": rule.get("mitre_chain", []),
-                    "evidence_count": sum(
-                        len(findings[cat]) for cat in required if cat in findings
-                    ),
-                    "evidence_samples": self._get_evidence_samples(findings, required),
-                }
-                self.triggered_correlations.append(correlation_result)
+            if not required.issubset(detected_categories):
+                continue
+
+            # Enforce temporal proximity when a window is requested. Rules may
+            # also declare their own window_minutes, which always applies.
+            window = rule.get("window_minutes", time_window_minutes)
+            if window is not None and not self._within_window(findings, required, window):
+                continue
+
+            correlation_result = {
+                "id": rule["id"],
+                "name": rule["name"],
+                "severity": rule["severity"],
+                "score_boost": rule["score_boost"],
+                "description": rule["desc"],
+                "matched_categories": list(required),
+                "mitre_chain": rule.get("mitre_chain", []),
+                "evidence_count": sum(
+                    len(findings[cat]) for cat in required if cat in findings
+                ),
+                "evidence_samples": self._get_evidence_samples(findings, required),
+            }
+            self.triggered_correlations.append(correlation_result)
 
         # Sort by severity and score
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -347,6 +360,65 @@ class CorrelationEngine:
         )
 
         return self.triggered_correlations
+
+    @staticmethod
+    def _coerce_dt(value) -> Optional[datetime]:
+        """Coerce a finding timestamp into a naive ``datetime`` (or ``None``)."""
+        if isinstance(value, datetime):
+            return value.replace(tzinfo=None) if value.tzinfo else value
+        if not value or not isinstance(value, str):
+            return None
+        s = value.strip()
+        try:
+            return datetime.fromisoformat(s.replace("Z", "+00:00").replace("z", "+00:00")).replace(tzinfo=None)
+        except ValueError:
+            pass
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
+                    "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                continue
+        return None
+
+    def _within_window(self, findings: Dict[str, list], categories: set,
+                       window_minutes: int) -> bool:
+        """
+        Determine whether one finding from each required category occurs within
+        the given time window (sliding-window over merged timelines).
+        """
+        events: List[Tuple[datetime, str]] = []
+        for cat in categories:
+            for finding in findings.get(cat, []):
+                ts = self._coerce_dt(finding.get("timestamp"))
+                if ts is not None:
+                    events.append((ts, cat))
+
+        if len(events) < len(categories):
+            return False
+
+        events.sort(key=lambda e: e[0])
+        window = timedelta(minutes=window_minutes)
+        counts: Dict[str, int] = defaultdict(int)
+        distinct = 0
+        left = 0
+
+        for right, (ts, cat) in enumerate(events):
+            if counts[cat] == 0:
+                distinct += 1
+            counts[cat] += 1
+
+            while ts - events[left][0] > window:
+                left_cat = events[left][1]
+                counts[left_cat] -= 1
+                if counts[left_cat] == 0:
+                    distinct -= 1
+                left += 1
+
+            if distinct == len(categories):
+                return True
+
+        return False
 
     def _get_evidence_samples(
         self, findings: Dict[str, list], categories: set, max_samples: int = 3

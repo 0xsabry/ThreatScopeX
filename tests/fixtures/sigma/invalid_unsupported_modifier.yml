@@ -1,0 +1,12 @@
+title: Unsupported Field Reference
+id: 44444444-4444-4444-4444-444444444444
+status: test
+description: Conformance fixture - parses as YAML but uses an unsupported modifier.
+author: ThreatScope tests
+logsource:
+  product: windows
+detection:
+  selection:
+    Image|fieldref: 'ParentImage'
+  condition: selection
+level: low

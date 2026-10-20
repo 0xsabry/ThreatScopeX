@@ -17,6 +17,7 @@ import json
 import logging
 import hashlib
 import re
+from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict
 from typing import (
@@ -33,6 +34,13 @@ try:
 except ImportError:
     AI_CORE_AVAILABLE = False
     logger.warning("ai.ai_core not available — agentic AI will use offline mode")
+
+# MITRE technique → tactic mappings (shared with the purple-team verifier)
+try:
+    from core.atomic_verifier import TECHNIQUE_TACTIC_MAP, MITRE_TACTICS
+except ImportError:
+    TECHNIQUE_TACTIC_MAP: Dict[str, List[str]] = {}
+    MITRE_TACTICS: Dict[str, Dict[str, Any]] = {}
 
 
 # ============================================================
@@ -518,27 +526,61 @@ Respond ONLY with valid JSON array. Example:
         ]
 
         try:
-            response = self.ai_core._call_openai(messages, max_tokens=2000, temperature=0.4)
+            response = self.ai_core._call_openai(
+                messages, max_tokens=2000, temperature=0.4
+            )
+        except Exception as exc:
+            # A custom/broken provider must not abort the investigation; fall
+            # back to the heuristic generator at this narrow boundary.
+            logger.warning(
+                "AI provider failed during hypothesis generation; using "
+                "heuristics: %s", exc,
+            )
+            return []
+        if not response:
+            # Provider returned nothing (unavailable/failed); let the caller
+            # fall back to heuristic hypothesis generation.
+            return []
 
-            # Parse JSON from response
+        try:
+            # Parse JSON out of the model's response.
             json_match = re.search(r'\[.*\]', response, re.DOTALL)
             if not json_match:
                 return []
 
             hypotheses_data = json.loads(json_match.group())
+            if not isinstance(hypotheses_data, list):
+                logger.warning("AI hypothesis generation returned non-list JSON")
+                return []
+
             hypotheses = []
 
             for hd in hypotheses_data:
+                if not isinstance(hd, dict):
+                    continue
+
+                # Model output is untrusted: coerce/validate fields so a
+                # malformed value cannot crash analysis.
+                try:
+                    priority = int(hd.get("priority", 5))
+                except (TypeError, ValueError):
+                    priority = 5
+                mitre_techniques = hd.get("mitre_techniques", [])
+                if not isinstance(mitre_techniques, list):
+                    mitre_techniques = []
+                evidence_needed = hd.get("evidence_needed", [])
+                if not isinstance(evidence_needed, list):
+                    evidence_needed = []
+
                 hyp = Hypothesis(
-                    title=hd.get("title", "AI Hypothesis"),
-                    description=hd.get("description", ""),
-                    priority=hd.get("priority", 5),
-                    mitre_techniques=hd.get("mitre_techniques", []),
+                    title=str(hd.get("title") or "AI Hypothesis"),
+                    description=str(hd.get("description") or ""),
+                    priority=priority,
+                    mitre_techniques=mitre_techniques,
                 )
                 # Add investigation notes from AI
-                if hd.get("evidence_needed"):
-                    for note in hd["evidence_needed"]:
-                        hyp.investigation_notes.append(f"[AI] Look for: {note}")
+                for note in evidence_needed:
+                    hyp.investigation_notes.append(f"[AI] Look for: {note}")
 
                 self.hypotheses[hyp.hypothesis_id] = hyp
                 hypotheses.append(hyp)
@@ -547,8 +589,10 @@ Respond ONLY with valid JSON array. Example:
             logger.info(f"AI generated {len(hypotheses)} hypotheses")
             return hypotheses
 
-        except Exception as e:
-            logger.warning(f"AI hypothesis generation failed: {e}")
+        except (json.JSONDecodeError, ValueError, re.error) as e:
+            # Only malformed/unparseable model output is tolerated here; genuine
+            # programming errors are intentionally allowed to propagate.
+            logger.warning(f"AI hypothesis generation returned unparseable output: {e}")
             return []
 
     def _generate_heuristic_hypotheses(self, results: Dict[str, Any]) -> List[Hypothesis]:
@@ -955,15 +999,21 @@ class EvidenceCollector:
             )
             evidence.append(ev)
 
-        # File hashes
-        hashes = self.iocs.get("hashes", [])
-        if hashes:
+        # File hashes (ioc_extractor emits {"md5": [...], "sha1": [...], "sha256": [...]})
+        hashes = self.iocs.get("hashes", {})
+        if isinstance(hashes, dict):
+            hash_count = sum(len(v) for v in hashes.values() if v)
+            hash_sample = {k: v[:10] for k, v in hashes.items() if v}
+        else:
+            hash_count = len(hashes)
+            hash_sample = hashes[:10]
+        if hash_count:
             ev = Evidence(
-                description=f"[IOC] {len(hashes)} file hashes extracted",
+                description=f"[IOC] {hash_count} file hashes extracted",
                 source="ioc_extraction",
                 grade=EvidenceGrade.STRONG,
                 confidence=0.85,
-                data={"hashes": hashes[:10]},
+                data={"hashes": hash_sample},
                 tags=["ioc", "hash"],
             )
             evidence.append(ev)
@@ -1248,9 +1298,6 @@ evidence grades, and timeline data."""
                 if tactic_name:
                     attack_stages.add(tactic_name)
 
-        # Import the technique-tactic mapping
-        from core.atomic_verifier import TECHNIQUE_TACTIC_MAP as VERIFIER_MAP
-
         return {
             "threat_score": score,
             "threat_level": level,
@@ -1493,15 +1540,24 @@ evidence grades, and timeline data."""
                 "Call investigate(results) first to start the analysis."
             )
 
-        # Try AI-powered response
+        # Try AI-powered response; fall back to the offline engine whenever the
+        # provider is unavailable, disabled, returns nothing, or fails so that
+        # ask() always honours its string return contract.
         if self.ai_core and self.ai_core.available:
-            return self._ask_ai(question)
+            response = self._ask_ai(question)
+            if response:
+                return response
 
         # Fallback: keyword-based response
         return self._ask_offline(question)
 
-    def _ask_ai(self, question: str) -> str:
-        """Generate an AI-powered response to a question."""
+    def _ask_ai(self, question: str) -> Optional[str]:
+        """
+        Generate an AI-powered response to a question.
+
+        Returns ``None`` (so the caller can fall back to the offline engine)
+        when the provider yields no usable response.
+        """
         # Build context from investigation report
         context = json.dumps({
             "triage": self._investigation_report.get("triage"),
@@ -1520,7 +1576,21 @@ evidence grades, and timeline data."""
         messages.extend(self._chat_history[-8:])
         messages.append({"role": "user", "content": question})
 
-        response = self.ai_core._call_openai(messages, max_tokens=1500, temperature=0.4)
+        try:
+            response = self.ai_core._call_openai(
+                messages, max_tokens=1500, temperature=0.4
+            )
+        except Exception as exc:
+            # Fall back to the offline engine; never surface provider errors to
+            # the caller or record a failed turn in the conversation history.
+            logger.warning(
+                "AI provider failed while answering a question; using offline "
+                "engine: %s", exc,
+            )
+            return None
+        if not response:
+            # Provider disabled/failed; do not record an empty turn in history.
+            return None
 
         self._chat_history.append({"role": "user", "content": question})
         self._chat_history.append({"role": "assistant", "content": response})
