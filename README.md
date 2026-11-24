@@ -36,49 +36,47 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - 📝 **Dynamic Rule Generator** — Auto-generates valid Sigma YAML and YARA signatures from deobfuscated payloads and behavioral patterns
 - 🟣 **Purple Team MITRE Verifier** — Validates detection coverage against Atomic Red Team tests, builds ATT&CK Navigator layers, and identifies detection gaps
 
-### What's in V3
+### Core features
 
 - 🐧 **Full Linux Log Support** — Dedicated parsers for syslog, auth.log, journald, Apache/Nginx, and firewall logs
 - 📡 **Live Log Monitoring** — Real-time WebSocket-based streaming with instant detection
-- 🛡️ **20+ Built-in YARA Rules** — Malware signatures, webshells, exploit tools, suspicious documents, Linux threats
-- 🎯 **100+ MITRE ATT&CK Techniques** — Full coverage across all 14 tactics with sub-technique resolution
-- ⚔️ **55+ Detection Categories** — 30 new patterns including cloud attacks, cryptojacking, fileless malware, and more
+- 🛡️ **44 Built-in YARA Rules** — Malware signatures, webshells, exploit tools, suspicious documents, Linux threats (counted: 44 `rule` definitions across the 5 files in `yara_rules/`)
+- 🎯 **141 MITRE ATT&CK Techniques** — Technique descriptions in `intel/apt_mapper.py`; 14 tactics defined in `config.py` (see the MITRE section below for the tactic-mapping limit)
+- ⚔️ **57 Detection Categories** — 27 original patterns plus 30 extended patterns (counted in `core/analyzer.py`, `BUILTIN_PATTERNS`)
 - 🔐 **Security Hardened** — CSP headers, rate limiting, CSRF protection, input validation, audit logging
-- 🕵️ **20 APT Groups** — 10 new groups including Volt Typhoon, Scattered Spider, LockBit, ALPHV/BlackCat
-- 🔗 **30 Correlation Rules** — 10 new rules for Linux, cloud, and advanced attack chains
-- ⛓️ **15 Behavioral Chains** — 5 new multi-stage patterns for Linux and cloud attack sequences
+- 🕵️ **20 APT Groups** — Including Volt Typhoon, Scattered Spider, LockBit, ALPHV/BlackCat (counted in `intel/apt_mapper.py`, `APT_GROUPS`)
+- 🔗 **30 Correlation Rules** — For Linux, cloud, and advanced attack chains (counted in `core/correlation.py`, `CORR-001`–`CORR-030`)
+- ⛓️ **15 Behavioral Chains** — Multi-stage patterns for Linux and cloud attack sequences (counted in `core/behavioral_chain.py`, `BC-001`–`BC-015`)
 
-### Why ThreatScope?
+### What ThreatScope does
 
-| Feature | ThreatScope V3.5 | Chainsaw | Others |
-|---------|:-:|:-:|:-:|
-| SigmaHQ Full Integration (3000+ Rules) | ✅ | ✅ | ❌ |
-| YARA Rules Engine (20+ Built-in) | ✅ | ✅ | ❌ |
-| Behavioral Chain Detection (15 Chains) | ✅ | ❌ | ❌ |
-| Multi-Platform (Win/Linux/Mac/Cloud) | ✅ | ❌ | ❌ |
-| Full Linux Log Parsing (5 Parsers) | ✅ | ❌ | ❌ |
-| Live Log Monitoring (WebSocket) | ✅ | ❌ | ❌ |
-| Causal Process Graph & RCA | ✅ | ❌ | ❌ |
-| Deep Forensics (Prefetch/MFT/Shimcache/Amcache) | ✅ | ❌ | ❌ |
-| Hypothesis-Driven AI Investigation | ✅ | ❌ | ❌ |
-| Auto-Deobfuscation (PS/Bash/Generic) | ✅ | ❌ | ❌ |
-| Dynamic Sigma & YARA Rule Generation | ✅ | ❌ | ❌ |
-| Purple Team MITRE Verification | ✅ | ❌ | ❌ |
-| AI Copilot & Narrative Engine | ✅ | ❌ | ❌ |
-| APT Group Attribution (20 Groups) | ✅ | ❌ | ❌ |
-| Threat Intel Enrichment (VT/AbuseIPDB/OTX) | ✅ | ❌ | ❌ |
-| Modern Web Dashboard | ✅ | ❌ | ❌ |
-| 100+ MITRE ATT&CK Techniques | ✅ | ❌ | ❌ |
-| Security Hardened (CSP/Rate Limiting/Audit) | ✅ | ❌ | ❌ |
-| False Positive Suppression | ✅ | ❌ | ❌ |
-| Training Mode for Analysts | ✅ | ❌ | ❌ |
-| Multi-Format Export (JSON/CSV/STIX/PDF/DOCX) | ✅ | ❌ | ❌ |
+- SigmaHQ rule support — sync Sigma rules from SigmaHQ and parse them (see below)
+- YARA rules engine — 44 built-in rules
+- Behavioral chain detection — 15 chains
+- Multi-platform log parsing (Windows, Linux, macOS, cloud)
+- Linux log parsing — 5 dedicated parsers
+- Live log monitoring (WebSocket)
+- Causal process graph & root cause analysis
+- Deep forensics (Prefetch/MFT/Shimcache/Amcache)
+- Hypothesis-driven AI investigation
+- Auto-deobfuscation (PowerShell/Bash/generic)
+- Dynamic Sigma & YARA rule generation
+- Purple team MITRE verification (signature matching only — no live test execution)
+- AI Copilot & narrative engine (requires an OpenAI API key; heuristic fallback without one)
+- APT group attribution (20 groups)
+- Threat intel enrichment (VirusTotal/AbuseIPDB/OTX — API keys required)
+- Modern web dashboard
+- 141 MITRE ATT&CK technique descriptions
+- Security hardening (CSP/rate limiting/audit)
+- False positive suppression
+- Training mode for analysts
+- Multi-format export (JSON/CSV/STIX/PDF/DOCX)
 
 ---
 
 ## ✨ Key Features
 
-### 🔀 Causal Graph & Process Lineage (V3.5 NEW)
+### 🔀 Causal Graph & Process Lineage (newer module)
 - **Process Tree Construction** — Builds PPID→PID→Child graphs from Sysmon EventID 1, Security 4688, and auditd
 - **Root Cause Analysis** — Automated backtracking to identify initial compromise process
 - **Network Overlay** — Maps network connections (Sysmon 3) to process nodes
@@ -87,14 +85,14 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - **Anomaly Detection** — Identifies suspicious process chains, orphan processes, and injection patterns
 - **NetworkX Integration** — Optional advanced graph analysis with centrality and community detection
 
-### 🧩 Deep Forensics Parsers (V3.5 NEW)
+### 🧩 Deep Forensics Parsers (newer module)
 - **Prefetch Parser** — Execution evidence with run counts, last execution timestamps, and referenced files
 - **$MFT / UsnJrnl Parser** — File system timeline reconstruction with timestomping detection (MACB analysis)
 - **Shimcache Parser** — AppCompatCache historical execution evidence with path extraction
 - **Amcache Parser** — SHA1 hashes, install metadata, and publisher information for binaries
 - **Normalized Output** — All parsers produce ThreatFinding-compatible output
 
-### 🤖 Hypothesis-Driven AI Copilot (V3.5 NEW)
+### 🤖 Hypothesis-Driven AI Copilot (newer module)
 - **Autonomous Investigation** — Multi-phase workflow: Triage → Hypothesis → Evidence → Analysis → Conclusion
 - **Hypothesis Engine** — Generates ranked investigative hypotheses (AI-powered or heuristic fallback)
 - **Evidence Collector** — Systematically gathers and grades evidence (Strong/Moderate/Weak/Contradictory)
@@ -102,7 +100,7 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - **Investigation Reports** — Structured reports with executive summary and recommended actions
 - **Interactive Q&A** — Drill-down conversations grounded in investigation data
 
-### 🔓 Auto-Deobfuscation Engine (V3.5 NEW)
+### 🔓 Auto-Deobfuscation Engine (newer module)
 - **PowerShell Deobfuscation** — Base64, backtick escapes, format strings (-f), XOR payloads, char() arrays, environment variable replacement
 - **Bash Deobfuscation** — Command concatenation, hex encoding, base64 pipes, $() substitution, eval chains
 - **Generic Deobfuscation** — URL encoding, HTML entities, Unicode escapes
@@ -110,7 +108,7 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - **C2 Extraction** — Automatically extracts IPs, domains, URLs from deobfuscated payloads
 - **Deobfuscation Pipeline** — Chain multiple deobfuscators with detailed step-by-step trace
 
-### 📝 Dynamic Rule Generator (V3.5 NEW)
+### 📝 Dynamic Rule Generator (newer module)
 - **Sigma Rule Generation** — Auto-generates valid SigmaHQ-format YAML rules with field selections and conditions
 - **YARA Rule Generation** — Produces YARA signatures with string/hex/regex patterns from payloads
 - **MITRE ATT&CK Mapping** — Auto-maps generated rules to techniques and tactics
@@ -118,7 +116,7 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - **Behavioral Pattern Rules** — Generates rules from behavioral chain detections
 - **Metadata Enrichment** — Includes author, date, severity, description, and references
 
-### 🟣 Purple Team MITRE Verifier (V3.5 NEW)
+### 🟣 Purple Team MITRE Verifier (newer module)
 - **Atomic Red Team Integration** — Loads and parses Atomic Red Team YAML test catalogs
 - **Simulation Evaluation** — Matches test signatures against Sigma rules and built-in patterns (no live execution)
 - **Coverage Matrix** — Builds technique × data source × status coverage heatmaps
@@ -128,20 +126,20 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - **Built-in Test Stubs** — 20 pre-loaded tests for critical techniques when no external tests available
 
 ### 🔍 Detection Power
-- **55+ Built-in Detection Categories** — Advanced regex patterns covering cloud, Linux, network, and application attacks
-- **SigmaHQ Integration** — Auto-sync and parse 3000+ Sigma rules with full condition support
-- **YARA Scanning** — 20+ built-in rules for malware, webshells, exploit tools, and suspicious documents
+- **57 Built-in Detection Categories** — Advanced regex patterns covering cloud, Linux, network, and application attacks (counted in `core/analyzer.py`)
+- **SigmaHQ Integration** — Sync Sigma rules from the SigmaHQ repository and parse them with condition evaluation (AND/OR/NOT, selections, value modifiers). The number of synced rules depends on the upstream corpus at sync time; only 1 example rule is bundled in `sigma_rules/`
+- **YARA Scanning** — 44 built-in rules for malware, webshells, exploit tools, and suspicious documents (requires the optional `yara-python` package)
 - **Behavioral Chain Detection** — 15 multi-stage attack patterns with time-window correlation
 - **30 Correlation Rules** — Kill chain analysis and score boosting
 
-### 🐧 Linux Log Support (V3)
+### 🐧 Linux Log Support
 - **Syslog Parser** — RFC 3164/5424 with facility/severity extraction
 - **Auth Log Parser** — SSH login, sudo, PAM, account management events
 - **Journald Parser** — systemd journal JSON exports with full metadata
 - **Apache/Nginx Parser** — Access and error logs with suspicious request flagging
 - **Firewall Parser** — iptables/nftables/ufw with action and protocol extraction
 
-### 📡 Live Monitoring (V3)
+### 📡 Live Monitoring
 - **Real-time Log Tailing** — Tail live log files with instant detection
 - **Multi-file Monitoring** — Monitor multiple files simultaneously
 - **Live Alert Stream** — Real-time alert cards with severity color-coding
@@ -161,7 +159,7 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - **Attack Narrative Engine** — Generates professional incident reports from findings
 - **Analyst Copilot** — Chat interface for Q&A grounded in session data
 - **Training Mode** — Socratic educational approach for junior analysts
-- **Agentic Copilot** — Autonomous hypothesis-driven investigation (V3.5)
+- **Agentic Copilot** — Autonomous hypothesis-driven investigation (newer module)
 
 ### 📡 Threat Intelligence
 - VirusTotal, AbuseIPDB, AlienVault OTX API integration
@@ -177,7 +175,7 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 - AI Copilot chat interface
 - Live monitoring dashboard
 
-### 🔐 Security Hardening (V3)
+### 🔐 Security Hardening
 - Content Security Policy (CSP) headers
 - X-Frame-Options, X-Content-Type-Options, HSTS
 - In-memory rate limiting per IP with auto-blocking
@@ -193,8 +191,8 @@ ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incide
 
 ```bash
 # Clone the repository
-git clone https://github.com/0xsabry/ThreatscopeX.git
-cd ThreatscopeX
+git clone https://github.com/0xsabry/ThreatScopeX.git
+cd ThreatScopeX
 
 # Install dependencies
 pip install -r requirements.txt
@@ -202,7 +200,7 @@ pip install -r requirements.txt
 # Optional: Install AI and reporting features
 pip install reportlab python-docx yara-python
 
-# Optional: Install graph engine (V3.5)
+# Optional: Install graph engine (newer modules)
 pip install networkx
 ```
 
@@ -237,7 +235,7 @@ python cli.py analyze path/to/events.json -o stix_bundle.json -f stix
 python cli.py sync
 ```
 
-### V3.5 Enterprise Modules Usage
+### Newer modules usage (Python API)
 
 ```python
 # ── Process Graph & Root Cause Analysis ──
@@ -316,13 +314,13 @@ export FLASK_SECRET_KEY="your_secret_key"
 ## 📁 Project Structure
 
 ```
-ThreatscopeX/
+ThreatScopeX/
 ├── app.py                      # Flask web application (security-hardened)
 ├── cli.py                      # Enhanced CLI interface
-├── config.py                   # Global configuration (V3 hardened)
+├── config.py                   # Global configuration
 ├── requirements.txt            # Dependencies
 ├── core/
-│   ├── analyzer.py             # Main analysis orchestrator (55+ patterns)
+│   ├── analyzer.py             # Main analysis orchestrator (57 patterns)
 │   ├── sigma_engine.py         # Full Sigma rule parser
 │   ├── sigma_sync.py           # SigmaHQ auto-sync
 │   ├── behavioral_chain.py     # 15 multi-stage attack chains
@@ -331,30 +329,30 @@ ThreatscopeX/
 │   ├── correlation.py          # 30 correlation rules
 │   ├── false_positive.py       # FP suppression engine
 │   ├── realtime_monitor.py     # File change monitoring
-│   ├── live_monitor.py         # V3: Live log tailing & detection
-│   ├── security.py             # V3: Security hardening module
-│   ├── graph_engine.py         # V3.5: Causal process graph & RCA
-│   ├── deobfuscator.py         # V3.5: Auto-deobfuscation engine
-│   ├── rule_gen.py             # V3.5: Dynamic Sigma/YARA generation
-│   └── atomic_verifier.py      # V3.5: Purple team MITRE verifier
+│   ├── live_monitor.py         # Live log tailing & detection
+│   ├── security.py             # Security hardening module
+│   ├── graph_engine.py         # Newer module: causal process graph & RCA
+│   ├── deobfuscator.py         # Newer module: auto-deobfuscation engine
+│   ├── rule_gen.py             # Newer module: dynamic Sigma/YARA generation
+│   └── atomic_verifier.py      # Newer module: purple team MITRE verifier
 ├── parsers/
 │   ├── log_parsers.py          # Multi-platform log parsers + auto-detection
-│   ├── linux_parsers.py        # V3: Dedicated Linux log parsers
-│   └── forensic_parsers.py     # V3.5: Deep forensics artifact parsers
+│   ├── linux_parsers.py        # Dedicated Linux log parsers
+│   └── forensic_parsers.py     # Newer module: deep forensics artifact parsers
 ├── intel/
 │   ├── enrichment.py           # VT/AbuseIPDB/OTX enrichment
-│   └── apt_mapper.py           # 20 APT groups + 100+ MITRE techniques
+│   └── apt_mapper.py           # 20 APT groups + 141 MITRE techniques
 ├── ai/
 │   ├── ai_core.py              # Narrative, Copilot, Training
-│   └── agentic_core.py         # V3.5: Hypothesis-driven AI investigation
+│   └── agentic_core.py         # Newer module: hypothesis-driven AI investigation
 ├── export/
 │   └── exporters.py            # JSON/CSV/STIX/PDF/DOCX
 ├── yara_rules/
-│   ├── malware_signatures.yar  # V3: Cobalt Strike, Mimikatz, ransomware, RATs
-│   ├── webshells.yar           # V3: PHP/ASP/JSP webshells
-│   ├── exploit_tools.yar       # V3: Privesc, credential dump, lateral movement tools
-│   ├── suspicious_documents.yar# V3: Malicious macros, PE in docs, PDF exploits
-│   └── linux_threats.yar       # V3: Rootkits, crypto miners, Linux backdoors
+│   ├── malware_signatures.yar  # Cobalt Strike, Mimikatz, ransomware, RATs
+│   ├── webshells.yar           # PHP/ASP/JSP webshells
+│   ├── exploit_tools.yar       # Privesc, credential dump, lateral movement tools
+│   ├── suspicious_documents.yar# Malicious macros, PE in docs, PDF exploits
+│   └── linux_threats.yar       # Rootkits, crypto miners, Linux backdoors
 ├── templates/                  # Jinja2 HTML templates
 │   ├── base.html
 │   ├── dashboard.html
@@ -365,7 +363,7 @@ ThreatscopeX/
 │   ├── copilot.html
 │   ├── rules.html
 │   ├── settings.html
-│   └── live_monitor.html       # V3: Real-time monitoring UI
+│   └── live_monitor.html       # Real-time monitoring UI
 └── static/
     ├── css/style.css           # Premium dark theme
     └── js/app.js               # Frontend logic
@@ -375,19 +373,23 @@ ThreatscopeX/
 
 ## 🎯 MITRE ATT&CK Coverage
 
-ThreatScope V3.5 maps findings to **100+ MITRE ATT&CK techniques** across all **14 tactics** and provides:
+ThreatScope maps findings to **141 MITRE ATT&CK technique descriptions** (`intel/apt_mapper.py`, `MITRE_TECHNIQUE_DESCRIPTIONS`) and provides:
 - Interactive heatmap visualization
 - APT group attribution (20 groups)
 - Kill chain coverage analysis
 - Technique-to-tactic mapping
 - Sub-technique resolution
-- **V3.5:** ATT&CK Navigator layer export from purple team verification
+- ATT&CK Navigator layer export from purple team verification
+
+Note on tactics: 14 tactics are defined (`config.py`, `MITRE_TACTICS`). The built-in technique-to-tactic map (`core/atomic_verifier.py`, `TECHNIQUE_TACTIC_MAP`) covers 92 techniques across **12** tactics — Resource Development (TA0042) and Reconnaissance (TA0043) have no mapped techniques in that map, so "coverage across all 14 tactics" is not claimed here.
 
 ---
 
-## 🛡️ Built-in Detection Categories (55+)
+## 🛡️ Built-in Detection Categories (57)
 
-### Original Categories (25)
+Counted in `core/analyzer.py` (`BUILTIN_PATTERNS`): 57 top-level patterns, each with its own category — 27 original plus 30 extended.
+
+### Original Categories (27)
 1. Brute Force & Authentication Attacks
 2. Credential Dumping (Mimikatz, LSASS)
 3. Privilege Escalation (UAC Bypass, Token Manipulation)
@@ -401,50 +403,52 @@ ThreatScope V3.5 maps findings to **100+ MITRE ATT&CK techniques** across all **
 11. SQL Injection
 12. PowerShell Abuse
 13. AV/Security Tool Tampering
-14. Kerberoasting & Golden/Silver Ticket
-15. Active Directory Reconnaissance
-16. Phishing & Social Engineering
-17. Container Escape
-18. ARP Poisoning
-19. MFA Fatigue Attacks
-20. JWT Token Abuse
-21. AI Prompt Injection
-22. Network Discovery
-23. WMI Abuse
-24. Scheduled Task Persistence
-25. Off-Hours Access
+14. Kerberoasting
+15. Golden/Silver Ticket
+16. Active Directory Reconnaissance
+17. Phishing & Social Engineering
+18. Network Discovery
+19. WMI Abuse
+20. Scheduled Task Persistence
+21. Off-Hours Access
+22. Bulk Download
+23. Container Escape
+24. ARP Poisoning
+25. MFA Fatigue Attacks
+26. JWT Token Abuse
+27. AI Prompt Injection
 
-### V3 Extended Categories (30+)
-26. Linux SSH Brute Force
-27. Linux Rootkit Indicators
-28. Linux Cron Persistence
-29. Linux Privilege Escalation
-30. Cryptojacking
-31. Supply Chain Attack
-32. Cloud IAM Abuse
-33. Cloud Storage Exfiltration
-34. API BOLA/IDOR
-35. DNS Tunneling
-36. DGA Detection
-37. WAF Bypass
-38. SSRF Attacks
-39. XXE Injection
-40. Deserialization Attacks
-41. Memory Injection
-42. Boot Persistence
-43. Firmware Attacks
-44. Keylogger Activity
-45. Clipboard Hijacking
-46. Screen Capture
-47. Crypto Wallet Theft
-48. WiFi Attacks
-49. USB Device Abuse
-50. Email Compromise
-51. Zero-Day Indicators
-52. Fileless Malware
-53. Active Directory DCSync
-54. Cloud Logging Tampering
-55. Linux Shell Escape
+### Extended Categories (30)
+28. Linux SSH Brute Force
+29. Linux Rootkit Indicators
+30. Linux Cron Persistence
+31. Linux Privilege Escalation
+32. Cryptojacking
+33. Supply Chain Attack
+34. Cloud IAM Abuse
+35. Cloud Storage Exfiltration
+36. API BOLA/IDOR
+37. DNS Tunneling
+38. DGA Detection
+39. WAF Bypass
+40. SSRF Attacks
+41. XXE Injection
+42. Deserialization Attacks
+43. Memory Injection
+44. Boot Persistence
+45. Firmware Attacks
+46. Keylogger Activity
+47. Clipboard Hijacking
+48. Screen Capture
+49. Crypto Wallet Theft
+50. WiFi Attacks
+51. USB Device Abuse
+52. Email Compromise
+53. Zero-Day Indicators
+54. Fileless Malware
+55. Active Directory DCSync
+56. Cloud Logging Tampering
+57. Linux Shell Escape
 
 ---
 
@@ -457,7 +461,7 @@ ThreatScope V3.5 maps findings to **100+ MITRE ATT&CK techniques** across all **
 | STIX 2.1 | Standard threat intelligence sharing format |
 | PDF | Professional executive report with charts |
 | DOCX | Editable Word document for incident reports |
-| ATT&CK Navigator | MITRE ATT&CK Navigator layer JSON (V3.5) |
+| ATT&CK Navigator | MITRE ATT&CK Navigator layer JSON (from the purple team verifier module) |
 
 ---
 
@@ -486,7 +490,7 @@ ThreatScope V3.5 maps findings to **100+ MITRE ATT&CK techniques** across all **
 | **LockBit** | Russia | LockBit 3.0, LockBitSupp |
 | **ALPHV/BlackCat** | Russia | BlackCat, Noberus |
 
-*Bold = V3 additions*
+*Bold = additions after the original 10 groups*
 
 ---
 
