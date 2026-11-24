@@ -534,6 +534,8 @@ MIT License — see [LICENSE](LICENSE)
 **Mohamed Sabry Hamdan (0xSABRY)**
 - Cybersecurity Analyst | SOC | Incident Response | DFIR | Detection
 - Open to suitable opportunities in Egypt and international remote roles that permit Egypt-based candidates
+- Cybersecurity Instructor at Zero2Aura (part-time, Oct 2025 – Sep 2026)
+- [Portfolio](https://0xsabry.github.io/) · [LinkedIn](https://www.linkedin.com/in/mohamed-sabry-hamdan)
 - [GitHub](https://github.com/0xsabry)
 
 ---
