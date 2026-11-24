@@ -1,31 +1,33 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/ThreatScope-V3.5-00d4ff?style=for-the-badge&logo=shield&logoColor=white" alt="ThreatScope V3.5"/>
+  <img src="https://img.shields.io/badge/ThreatScope-DFIR-00d4ff?style=for-the-badge&logo=shield&logoColor=white" alt="ThreatScope"/>
 </p>
 
-<h1 align="center">🛡️ ThreatScope V3.5</h1>
+<h1 align="center">🛡️ ThreatScope</h1>
 
 <p align="center">
   <strong>Advanced DFIR & Threat Detection Platform</strong><br>
-  <em>Open-source forensic analysis tool that eats Chainsaw for breakfast.</em>
+  <em>Open-source forensic analysis tool for SOC analysts, incident responders, and threat hunters.</em>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/SigmaHQ-3000%2B%20Rules-blue?style=flat-square" alt="Sigma Rules"/>
-  <img src="https://img.shields.io/badge/MITRE%20ATT%26CK-100%2B%20Techniques-red?style=flat-square" alt="MITRE ATT&CK"/>
-  <img src="https://img.shields.io/badge/Detection%20Rules-55%2B%20Categories-purple?style=flat-square" alt="Detection Rules"/>
-  <img src="https://img.shields.io/badge/Enterprise%20Modules-6%20New-ff8c00?style=flat-square" alt="Enterprise Modules"/>
+  <img src="https://img.shields.io/badge/SigmaHQ-Rule%20Support-blue?style=flat-square" alt="Sigma Rules"/>
+  <img src="https://img.shields.io/badge/MITRE%20ATT%26CK-141%20Techniques-red?style=flat-square" alt="MITRE ATT&CK"/>
+  <img src="https://img.shields.io/badge/Detection%20Rules-57%20Categories-purple?style=flat-square" alt="Detection Rules"/>
+  <img src="https://img.shields.io/badge/Modules-6-ff8c00?style=flat-square" alt="Modules"/>
   <img src="https://img.shields.io/badge/Author-0xSABRY-ff1744?style=flat-square" alt="Author"/>
 </p>
 
 ---
 
-## 🚀 What is ThreatScope V3.5?
+## 🚀 What is ThreatScope?
 
-ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designed for SOC analysts, incident responders, and threat hunters. It combines the power of Sigma rules, behavioral chain detection, AI-powered analysis, and multi-platform log parsing into one unified tool — now with **6 enterprise-grade modules** for advanced investigations: causal graph analysis, deep forensic artifact parsing, hypothesis-driven AI investigation, auto-deobfuscation, dynamic rule generation, and purple team MITRE verification.
+ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incident responders, and threat hunters. It combines Sigma rules, behavioral chain detection, AI-assisted analysis, and multi-platform log parsing into one tool — plus **6 newer modules** for advanced investigations: causal graph analysis, deep forensic artifact parsing, hypothesis-driven AI investigation, auto-deobfuscation, dynamic rule generation, and purple team MITRE verification.
 
-### 🆕 What's New in V3.5 — Enterprise Modules
+> **Version note.** There is no released version newer than the `v3.0.0` tag, and `config.py` still reports `VERSION = "3.0.0"` — that is the version the running web application reports. The only release tag in this repository is `v3.0.0` (5 Mar 2026). The features described below as "V3" and the six newer modules were merged after that tag (commits `b787df1` and `89e0e3f`, Aug 2026) with no new tag and no version bump, so this README does **not** present the current code as an official "V3.5" release. The label "V3.5" survives only in commit messages and in some code comments. The six newer modules are standalone Python modules (`core/graph_engine.py`, `parsers/forensic_parsers.py`, `ai/agentic_core.py`, `core/deobfuscator.py`, `core/rule_gen.py`, `core/atomic_verifier.py`); they are **not** wired into the web dashboard (`app.py`) or the CLI (`cli.py`).
+
+### 🆕 Newer modules (added after the v3.0.0 tag)
 
 - 🔀 **Causal Graph & Process Lineage** — Builds directional process graphs from Sysmon/Security/auditd logs with automated Root Cause Analysis (RCA) backtracking and D3.js/Cytoscape.js export
 - 🧩 **Deep Forensics Artifact Parsers** — Prefetch, $MFT, Shimcache, and Amcache parsers for Windows DFIR deep-dives with timestomping detection
