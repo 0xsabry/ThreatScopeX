@@ -237,6 +237,8 @@ python cli.py sync
 
 ### Newer modules usage (Python API)
 
+> These six modules are standalone Python modules. They are **not** wired into the web dashboard (`app.py`) or the CLI (`cli.py`); use them by importing them as shown below.
+
 ```python
 # ── Process Graph & Root Cause Analysis ──
 from core.graph_engine import ProcessGraph, RootCauseAnalyzer
@@ -494,6 +496,19 @@ Counted in `core/analyzer.py` (`BUILTIN_PATTERNS`): 57 top-level patterns, each 
 
 ---
 
+## ⚠️ Limitations — read before use
+
+- **Rule-based detections need analyst validation.** Findings are pattern matches (regex, Sigma, YARA, correlation), not confirmed incidents. Treat every finding as a lead to investigate, not as proof of compromise.
+- **AI features need an OpenAI API key.** Set `OPENAI_API_KEY`; without it the AI copilot and narrative engine fall back to a heuristic response, not real AI analysis.
+- **Threat intel enrichment needs API keys.** VirusTotal, AbuseIPDB, and AlienVault OTX lookups require `VT_API_KEY`, `ABUSEIPDB_API_KEY`, and `OTX_API_KEY`. Without keys, enrichment is skipped.
+- **Purple team verification matches signatures; it does not execute tests.** The MITRE verifier (`core/atomic_verifier.py`) matches Atomic Red Team test definitions against Sigma rules and built-in patterns. It does not run payloads or commands on any host, and its coverage score is a matching score, not a tested-detection result. The 20 built-in test stubs are definitions, not executed tests.
+- **Live monitoring tails local log files; there is no agent.** Live monitoring watches files on the machine running ThreatScope (file tailing / watchdog or polling). It does not deploy agents to remote hosts.
+- **Sigma sync depends on the upstream corpus.** Syncing clones the SigmaHQ repository; the number of rules obtained depends on that repository at sync time. Only 1 example rule is bundled in `sigma_rules/`.
+- **YARA scanning needs `yara-python`.** The YARA engine is optional; without the package installed, YARA scanning is unavailable.
+- **Two detection engines live in this repo — do not mix their counts.** The web application uses `core/analyzer.py` (57 patterns). The separate legacy desktop GUI `ThreatscopeX.py` (version 1.0) has its own `PATTERNS` dictionary with 308 regex rules across 25 categories. The 308 figure belongs to the legacy GUI only.
+- **Six newer modules are not integrated.** The graph, forensic-parser, agentic-AI, deobfuscation, rule-generation, and MITRE-verifier modules exist as importable Python code and are documented above, but they are not wired into the web dashboard or CLI.
+- **No validation run is bundled.** This repository ships no test suite; the counts in this README were verified by counting source definitions (see the version note above), not by executing the application.
+
 ## 📝 License
 
 MIT License — see [LICENSE](LICENSE)
@@ -502,9 +517,9 @@ MIT License — see [LICENSE](LICENSE)
 
 ## 👨‍💻 Author
 
-**Mohamed Sabry (0xSABRY)**
-- SOC Analyst & Threat Hunter
-- Founder of Zero2Aura
+**Mohamed Sabry Hamdan (0xSABRY)**
+- Cybersecurity Analyst | SOC | Incident Response | DFIR | Detection
+- Open to suitable opportunities in Egypt and international remote roles that permit Egypt-based candidates
 - [GitHub](https://github.com/0xsabry)
 
 ---
