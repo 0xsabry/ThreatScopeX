@@ -13,10 +13,10 @@ Thank you for your interest in contributing! ThreatScope welcomes contributions 
 ### Adding Detection Rules
 
 1. Fork the repository
-2. Add your rule(s) to the `PATTERNS` dictionary in `0xSABRY_ThreatScope.py`
+2. Add your rule(s) to the `PATTERNS` dictionary in `ThreatscopeX.py` (legacy desktop GUI — 308 rules). Rules for the web application belong in `BUILTIN_PATTERNS` in `core/analyzer.py` (57 patterns).
 3. Each rule must include: `patterns`, `severity`, `weight`, `category`, `desc`, `mitre`
-4. Add corresponding MITRE technique to `MITRE_DESCRIPTIONS` if new
-5. Run the validation script: `python validate_threatscope.py`
+4. Add corresponding MITRE technique to `MITRE_DESCRIPTIONS` in `ThreatscopeX.py` if new
+5. Validate the rules with the check in `.github/workflows/ci.yml` (it compiles every regex in `PATTERNS` and checks the required fields). There is no separate `validate_threatscope.py` script.
 6. Submit a Pull Request
 
 ### Adding Sigma Rules
@@ -36,15 +36,15 @@ Thank you for your interest in contributing! ThreatScope welcomes contributions 
 - Follow PEP 8
 - Use descriptive variable names
 - Comment complex regex patterns
-- Keep all code in a single file for zero-dependency deployment
+- Keep new web-application code in the existing package layout (`core/`, `parsers/`, `intel/`, `ai/`, `export/`). The single-file `ThreatscopeX.py` is the legacy desktop GUI only.
 
 ## Testing
 
 Before submitting, ensure:
 
-- `python -c "import py_compile; py_compile.compile('0xSABRY_ThreatScope.py', doraise=True)"` passes
+- `python -c "import py_compile; py_compile.compile('ThreatscopeX.py', doraise=True)"` passes
 - All regex patterns compile without errors
-- GUI launches without errors: `python 0xSABRY_ThreatScope.py`
+- GUI launches without errors: `python ThreatscopeX.py`
 
 ## License
 

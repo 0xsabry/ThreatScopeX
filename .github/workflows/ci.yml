@@ -22,13 +22,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Syntax Check
-      run: python -c "import py_compile; py_compile.compile('0xSABRY_ThreatScope.py', doraise=True); print('✅ Syntax OK')"
+      run: python -c "import py_compile; py_compile.compile('ThreatscopeX.py', doraise=True); print('✅ Syntax OK')"
 
     - name: Validate Detection Rules
       run: |
         python -c "
         import re, importlib.util
-        spec = importlib.util.spec_from_file_location('ts', '0xSABRY_ThreatScope.py')
+        spec = importlib.util.spec_from_file_location('ts', 'ThreatscopeX.py')
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         errors = 0
@@ -49,6 +49,8 @@ jobs:
         "
 
     - name: CLI Smoke Test
+      # NOTE: ThreatscopeX.py is the legacy desktop GUI; its own VERSION
+      # constant is "1.0". The web application reports 3.0.0 via config.py.
       run: |
-        python 0xSABRY_ThreatScope.py -f "sample_anyonomus login.evtx" -j /tmp/test_report.json
-        python -c "import json; d=json.load(open('/tmp/test_report.json')); assert d['version']=='3.0.0'; assert d['threat_score']>0; print('✅ CLI test passed')"
+        python ThreatscopeX.py -f "sample_anyonomus login.evtx" -j /tmp/test_report.json
+        python -c "import json; d=json.load(open('/tmp/test_report.json')); assert d['version']=='1.0'; assert d['threat_score']>0; print('✅ CLI test passed')"
