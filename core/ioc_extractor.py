@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — IOC Extraction Engine
+ThreatScope — IOC Extraction Engine
 Author: 0xSABRY
 
 Extracts Indicators of Compromise (IOCs) from log data including

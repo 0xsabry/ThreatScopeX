@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — YARA Rules Integration Engine
+ThreatScope — YARA Rules Integration Engine
 Author: 0xSABRY
 
 Scans files, memory dumps, and executables with YARA rules.

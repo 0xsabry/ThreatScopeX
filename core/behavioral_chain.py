@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Behavioral Chaining Engine
+ThreatScope — Behavioral Chaining Engine
 Author: 0xSABRY
 
 Detects multi-stage attacks by correlating events within configurable

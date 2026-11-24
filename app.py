@@ -1,5 +1,5 @@
 """
-ThreatScope V3 — Flask Web Application
+ThreatScope — Flask Web Application
 Author: 0xSABRY
 
 Modern web-based DFIR platform with dark-themed UI,

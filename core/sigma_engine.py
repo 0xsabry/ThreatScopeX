@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Full SigmaHQ Rule Engine
+ThreatScope — Full SigmaHQ Rule Engine
 Author: 0xSABRY
 
 Complete Sigma rule parser supporting:

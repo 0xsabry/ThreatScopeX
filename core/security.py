@@ -1,5 +1,5 @@
 """
-ThreatScope V3 — Security Hardening Module
+ThreatScope — Security Hardening Module
 Author: 0xSABRY
 
 Centralized security controls for the ThreatScope platform:

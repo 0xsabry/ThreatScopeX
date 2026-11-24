@@ -1,5 +1,5 @@
 """
-ThreatScope V3.5 — Hypothesis-Driven Agentic AI Copilot
+ThreatScope — Hypothesis-Driven Agentic AI Copilot
 Author: 0xSABRY
 
 Next-generation AI analysis engine that operates as an autonomous
@@ -1196,7 +1196,7 @@ evidence grades, and timeline data."""
         self.phase = InvestigationPhase.REPORTING
         self._investigation_report = {
             "metadata": {
-                "tool": "ThreatScope V3.5 Agentic Copilot",
+                "tool": "ThreatScope Agentic Copilot",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "investigation_id": hashlib.md5(
                     datetime.now(timezone.utc).isoformat().encode()

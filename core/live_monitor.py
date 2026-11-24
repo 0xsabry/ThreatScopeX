@@ -1,5 +1,5 @@
 """
-ThreatScope V3 — Live Log Monitor with Real-Time Detection
+ThreatScope — Live Log Monitor with Real-Time Detection
 Author: 0xSABRY
 
 Tails live log files, parses new lines incrementally, and runs detection

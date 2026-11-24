@@ -1,5 +1,5 @@
 """
-ThreatScope V3 — Global Configuration
+ThreatScope — Global Configuration
 Author: 0xSABRY
 
 Security-hardened configuration with cryptographically secure defaults.

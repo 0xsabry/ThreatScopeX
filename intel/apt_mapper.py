@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — APT Group Mapper & CVE Feed
+ThreatScope — APT Group Mapper & CVE Feed
 Author: 0xSABRY
 
 APT Group Attribution: Cross-references detected MITRE techniques

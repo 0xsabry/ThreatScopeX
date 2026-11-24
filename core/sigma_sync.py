@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — SigmaHQ Auto-Sync Module
+ThreatScope — SigmaHQ Auto-Sync Module
 Author: 0xSABRY
 
 Automatically syncs Sigma detection rules from the official SigmaHQ

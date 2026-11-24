@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Main Analyzer Orchestrator
+ThreatScope — Main Analyzer Orchestrator
 Author: 0xSABRY
 
 Central analysis engine that coordinates all detection modules:
@@ -798,7 +798,7 @@ class LogAnalyzer:
 
         lines = [
             "=" * 70,
-            f"  0xSABRY ThreatScope V2 — Analysis Report",
+            f"  0xSABRY ThreatScope — Analysis Report",
             "=" * 70,
             f"  File: {results['metadata']['filepath']}",
             f"  MD5:  {results['metadata']['file_hashes'].get('md5', 'N/A')}",

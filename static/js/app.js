@@ -1,5 +1,5 @@
 /**
- * ThreatScope V2 — Main JavaScript
+ * ThreatScope — Main JavaScript
  * Author: 0xSABRY
  *
  * Core UI interactions, file upload handling, and API calls.

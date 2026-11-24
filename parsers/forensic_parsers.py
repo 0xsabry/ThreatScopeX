@@ -1,5 +1,5 @@
 """
-ThreatScope V3.5 — Deep Forensics Artifact Parsers
+ThreatScope — Deep Forensics Artifact Parsers
 Author: 0xSABRY
 
 Windows forensic artifact parsers for deep-dive DFIR investigations:

@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Multi-Platform Log Parsers
+ThreatScope — Multi-Platform Log Parsers
 Author: 0xSABRY
 
 Unified parsers for Windows EVTX, Sysmon, Linux auditd, macOS unified logs,
