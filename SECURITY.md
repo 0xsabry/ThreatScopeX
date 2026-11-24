@@ -5,7 +5,7 @@
 If you discover a security vulnerability in ThreatScope, please report it responsibly:
 
 1. **Do NOT** open a public issue
-2. Email: [Create a private security advisory](https://github.com/0xsabry/ThreatScope/security/advisories/new)
+2. Email: [Create a private security advisory](https://github.com/0xsabry/ThreatScopeX/security/advisories/new)
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
@@ -27,4 +27,4 @@ We aim to:
 
 - Acknowledge reports within 48 hours
 - Provide a fix within 7 days for critical issues
-- Credit reporters in the changelog (unless anonymity is requested)
+- Credit reporters (unless anonymity is requested)
