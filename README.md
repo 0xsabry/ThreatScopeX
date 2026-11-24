@@ -25,7 +25,7 @@
 
 ThreatScope is a **DFIR and threat detection platform** for SOC analysts, incident responders, and threat hunters. It combines Sigma rules, behavioral chain detection, AI-assisted analysis, and multi-platform log parsing into one tool — plus **6 newer modules** for advanced investigations: causal graph analysis, deep forensic artifact parsing, hypothesis-driven AI investigation, auto-deobfuscation, dynamic rule generation, and purple team MITRE verification.
 
-> **Version note.** There is no released version newer than the `v3.0.0` tag, and `config.py` still reports `VERSION = "3.0.0"` — that is the version the running web application reports. The only release tag in this repository is `v3.0.0` (5 Mar 2026). The features described below as "V3" and the six newer modules were merged after that tag (commits `b787df1` and `89e0e3f`, Aug 2026) with no new tag and no version bump, so this README does **not** present the current code as an official "V3.5" release. The label "V3.5" survives only in commit messages and in some code comments. The six newer modules are standalone Python modules (`core/graph_engine.py`, `parsers/forensic_parsers.py`, `ai/agentic_core.py`, `core/deobfuscator.py`, `core/rule_gen.py`, `core/atomic_verifier.py`); they are **not** wired into the web dashboard (`app.py`) or the CLI (`cli.py`).
+> **Version note.** There is no released version newer than the `v3.0.0` tag, and `config.py` still reports `VERSION = "3.0.0"` — that is the version the running web application reports. The only release tag in this repository is `v3.0.0` (5 Mar 2026). The six newer modules were merged after that tag (commits `b787df1` and `89e0e3f`, Aug 2026) with no new tag and no version bump, so this README does **not** present the current code as an official "V3.5" release. The label "V3.5" survives only in commit messages. Generated reports and exports use the neutral product name "ThreatScope" with no version suffix; the process-graph export carries its own export-format version (1.0), which is not a product release version. The six newer modules are standalone Python modules (`core/graph_engine.py`, `parsers/forensic_parsers.py`, `ai/agentic_core.py`, `core/deobfuscator.py`, `core/rule_gen.py`, `core/atomic_verifier.py`); they are **not** wired into the web dashboard (`app.py`) or the CLI (`cli.py`).
 
 ### 🆕 Newer modules (added after the v3.0.0 tag)
 
@@ -281,6 +281,20 @@ print(report["executive_summary"])
 copilot.ask("What evidence supports credential theft?")
 ```
 
+### Integration status
+
+| Component | Status in the web app / CLI | How to use |
+|---|---|---|
+| Core analyzer, Sigma engine, YARA engine, live monitor (`core/analyzer.py`, `core/sigma_engine.py`, `core/yara_engine.py`, `core/live_monitor.py`) | **Integrated** — used by `app.py` and `cli.py` | Web dashboard or `python cli.py analyze …` |
+| Causal graph & RCA (`core/graph_engine.py`) | **Standalone** — not wired into `app.py` / `cli.py` | `from core.graph_engine import ProcessGraph` |
+| Deep forensics parsers (`parsers/forensic_parsers.py`) | **Standalone** | `from parsers.forensic_parsers import PrefetchParser` |
+| Agentic AI copilot (`ai/agentic_core.py`) | **Standalone** | `from ai.agentic_core import AgenticCopilot` |
+| Auto-deobfuscation (`core/deobfuscator.py`) | **Standalone** | `from core.deobfuscator import DeobfuscationPipeline` |
+| Dynamic rule generation (`core/rule_gen.py`) | **Standalone** | `from core.rule_gen import SigmaRuleGenerator` |
+| MITRE verifier (`core/atomic_verifier.py`) | **Standalone** | `from core.atomic_verifier import MITREVerifier` |
+
+No file in this repository imports any of the six standalone modules — they are library modules you import directly, as shown above. The web dashboard and CLI only run the integrated components.
+
 ### Live Monitoring
 
 ```bash
@@ -506,7 +520,7 @@ Counted in `core/analyzer.py` (`BUILTIN_PATTERNS`): 57 top-level patterns, each 
 - **Sigma sync depends on the upstream corpus.** Syncing clones the SigmaHQ repository; the number of rules obtained depends on that repository at sync time. Only 1 example rule is bundled in `sigma_rules/`.
 - **YARA scanning needs `yara-python`.** The YARA engine is optional; without the package installed, YARA scanning is unavailable.
 - **Two detection engines live in this repo — do not mix their counts.** The web application uses `core/analyzer.py` (57 patterns). The separate legacy desktop GUI `ThreatscopeX.py` (version 1.0) has its own `PATTERNS` dictionary with 308 regex rules across 25 categories. The 308 figure belongs to the legacy GUI only.
-- **Six newer modules are not integrated.** The graph, forensic-parser, agentic-AI, deobfuscation, rule-generation, and MITRE-verifier modules exist as importable Python code and are documented above, but they are not wired into the web dashboard or CLI.
+- **Six newer modules are not integrated.** The graph, forensic-parser, agentic-AI, deobfuscation, rule-generation, and MITRE-verifier modules exist as importable Python code and are documented above, but they are not wired into the web dashboard or CLI (see Integration status above).
 - **No validation run is bundled.** This repository ships no test suite; the counts in this README were verified by counting source definitions (see the version note above), not by executing the application.
 
 ## 📝 License
