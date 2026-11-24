@@ -23,7 +23,7 @@ requests>=2.31.0
 # File Monitoring (Realtime)
 watchdog>=4.0.0
 
-# V3.5 — Process Graph & Causal Analysis (optional)
+# Newer modules — Process Graph & Causal Analysis (optional)
 # networkx>=3.2.0
 
 # YARA Scanning (optional, requires yara-python)
