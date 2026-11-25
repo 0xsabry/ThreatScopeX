@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+"/>
+  <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License"/>
   <img src="https://img.shields.io/badge/SigmaHQ-Rule%20Support-blue?style=flat-square" alt="Sigma Rules"/>
   <img src="https://img.shields.io/badge/MITRE%20ATT%26CK-141%20Techniques-red?style=flat-square" alt="MITRE ATT&CK"/>
@@ -234,6 +234,17 @@ python cli.py analyze path/to/events.json -o stix_bundle.json -f stix
 # Sync Sigma rules from SigmaHQ
 python cli.py sync
 ```
+
+### Testing
+
+This repository ships a small test suite under `tests/` (Python's standard `unittest`, no extra test framework) and a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs it on Python 3.11–3.15.
+
+```bash
+pip install -r requirements.txt
+python -m unittest discover -s tests -v
+```
+
+CI validates the current application: the 57 detection patterns in `core/analyzer.py` (required fields and regex compilation), the `cli.py` interface including a real offline analysis of the committed sample EVTX with JSON export, and the Flask entry point (`app.py`) via its test client, including security response headers. Legacy desktop GUI checks (`ThreatscopeX.py`, version 1.0, 308 rules) are separate and do not validate `app.py` or `cli.py`. Passing these checks is not a full security audit or an exhaustive integration test, and the six newer standalone modules remain unintegrated with the dashboard and CLI.
 
 ### Newer modules usage (Python API)
 
@@ -521,7 +532,7 @@ Counted in `core/analyzer.py` (`BUILTIN_PATTERNS`): 57 top-level patterns, each 
 - **YARA scanning needs `yara-python`.** The YARA engine is optional; without the package installed, YARA scanning is unavailable.
 - **Two detection engines live in this repo — do not mix their counts.** The web application uses `core/analyzer.py` (57 patterns). The separate legacy desktop GUI `ThreatscopeX.py` (version 1.0) has its own `PATTERNS` dictionary with 308 regex rules across 25 categories. The 308 figure belongs to the legacy GUI only.
 - **Six newer modules are not integrated.** The graph, forensic-parser, agentic-AI, deobfuscation, rule-generation, and MITRE-verifier modules exist as importable Python code and are documented above, but they are not wired into the web dashboard or CLI (see Integration status above).
-- **No validation run is bundled.** This repository ships no test suite; the counts in this README were verified by counting source definitions (see the version note above), not by executing the application.
+- **CI validates the application by execution; it is not a full audit.** The repository ships a GitHub Actions workflow (`.github/workflows/ci.yml`) and a small `unittest` suite (`tests/`) that run the current application's detection patterns, CLI sample EVTX analysis, and Flask entry point. Legacy desktop GUI checks are separate. Passing these checks is not a full security audit or an exhaustive integration test, and the six newer standalone modules remain unintegrated with the dashboard and CLI.
 
 ## 📝 License
 
