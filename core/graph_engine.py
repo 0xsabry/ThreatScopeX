@@ -1,5 +1,5 @@
 """
-ThreatScope V3.5 — Causal Graph & Process Lineage Engine
+ThreatScope — Causal Graph & Process Lineage Engine
 Author: 0xSABRY
 
 Constructs directional process graphs from Sysmon, Windows Security,
@@ -866,7 +866,9 @@ class ProcessGraph:
         """
         data = {
             "format": "threatscope_process_graph",
-            "version": "3.5",
+            # Export format version (first versioned export of this
+            # format). Not a product release version.
+            "version": "1.0",
             "d3": self.export_d3_json(),
             "cytoscape": self.export_cytoscape_json(),
         }

@@ -6,49 +6,67 @@ on:
   pull_request:
     branches: [ main ]
 
+# Least privilege: this workflow only reads the repository.
+# It installs dependencies and runs tests; it publishes nothing.
+permissions:
+  contents: read
+
 jobs:
-  validate:
+  # Validates the current web application (app.py / cli.py / core/)
+  # on every supported Python version.
+  current:
+    name: Current application (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-
+        python-version: ['3.11', '3.12', '3.13', '3.14', '3.15']
     steps:
-    - uses: actions/checkout@v4
+      # actions/checkout v7 (v7.0.1)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        # actions/setup-python v7 (v7.1.0)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Syntax Check
-      run: python -c "import py_compile; py_compile.compile('0xSABRY_ThreatScope.py', doraise=True); print('✅ Syntax OK')"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
-    - name: Validate Detection Rules
-      run: |
-        python -c "
-        import re, importlib.util
-        spec = importlib.util.spec_from_file_location('ts', '0xSABRY_ThreatScope.py')
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        errors = 0
-        for name, rule in mod.PATTERNS.items():
-            for p in rule['patterns']:
-                try:
-                    re.compile(p)
-                except re.error as e:
-                    print(f'❌ Regex error in {name}: {e}')
-                    errors += 1
-            for field in ('severity', 'weight', 'category', 'desc'):
-                if field not in rule:
-                    print(f'❌ Missing {field} in {name}')
-                    errors += 1
-        if errors:
-            raise SystemExit(f'{errors} errors found')
-        print(f'✅ All {len(mod.PATTERNS)} rules validated')
-        "
+      - name: Check installed dependencies
+        run: python -m pip check
 
-    - name: CLI Smoke Test
-      run: |
-        python 0xSABRY_ThreatScope.py -f "sample_anyonomus login.evtx" -j /tmp/test_report.json
-        python -c "import json; d=json.load(open('/tmp/test_report.json')); assert d['version']=='3.0.0'; assert d['threat_score']>0; print('✅ CLI test passed')"
+      - name: Compile application modules and tests
+        run: python -m compileall app.py cli.py config.py core export intel ai parsers tests
+
+      # Add new current-application test modules to this command.
+      # Legacy desktop GUI checks live in the separate `legacy` job.
+      - name: Run current-application tests
+        run: python -m unittest tests.test_analyzer_patterns tests.test_cli tests.test_flask_app -v
+
+  # Compatibility checks for the separate legacy desktop GUI
+  # (ThreatscopeX.py, version 1.0, 308 rules). These checks do NOT
+  # validate app.py or cli.py, and the GUI is never launched here.
+  legacy:
+    name: Legacy desktop GUI checks
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout v7 (v7.0.1)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python 3.12
+        # actions/setup-python v7 (v7.1.0)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run legacy compatibility checks
+        run: python -m unittest tests.test_legacy -v

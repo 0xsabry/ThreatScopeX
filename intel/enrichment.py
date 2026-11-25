@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Threat Intelligence Enrichment
+ThreatScope — Threat Intelligence Enrichment
 Author: 0xSABRY
 
 Async IOC enrichment via VirusTotal, AbuseIPDB, and AlienVault OTX APIs.

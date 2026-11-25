@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Multi-Format Export Engine
+ThreatScope — Multi-Format Export Engine
 Author: 0xSABRY
 
 Generates reports in PDF, DOCX, STIX 2.1, JSON, and CSV formats.
@@ -48,7 +48,7 @@ def export_json(results: dict, filepath: str) -> str:
         Path to exported file.
     """
     output = {
-        "tool": "ThreatScope V2",
+        "tool": "ThreatScope",
         "author": "0xSABRY",
         "export_time": datetime.now(timezone.utc).isoformat(),
         "results": _serialize_results(results),
@@ -109,7 +109,7 @@ def export_stix(results: dict, filepath: str) -> str:
         "id": identity_id,
         "created": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "modified": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "name": "ThreatScope V2",
+        "name": "ThreatScope",
         "identity_class": "tool",
     })
 
@@ -257,13 +257,13 @@ def export_pdf(results: dict, filepath: str) -> str:
 
     # Title page
     story.append(Spacer(1, 50*mm))
-    story.append(Paragraph("🛡️ ThreatScope V2", title_style))
+    story.append(Paragraph("🛡️ ThreatScope", title_style))
     story.append(Spacer(1, 5*mm))
     story.append(Paragraph("DFIR Analysis Report", heading_style))
     story.append(Spacer(1, 10*mm))
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", body_style))
     story.append(Paragraph(f"File: {results.get('metadata', {}).get('filepath', 'N/A')}", body_style))
-    story.append(Paragraph(f"Analyzer: 0xSABRY ThreatScope V2", body_style))
+    story.append(Paragraph(f"Analyzer: 0xSABRY ThreatScope", body_style))
     story.append(PageBreak())
 
     # Executive Summary
@@ -338,7 +338,7 @@ def export_docx(results: dict, filepath: str) -> str:
     doc = Document()
 
     # Title
-    title = doc.add_heading("ThreatScope V2 — DFIR Analysis Report", level=0)
+    title = doc.add_heading("ThreatScope — DFIR Analysis Report", level=0)
     for run in title.runs:
         run.font.color.rgb = RGBColor(0, 212, 255)
 
@@ -407,7 +407,7 @@ def _generate_text_report(results: dict) -> str:
     """Generate a plain text report as fallback."""
     lines = [
         "=" * 70,
-        "ThreatScope V2 — DFIR Analysis Report",
+        "ThreatScope — DFIR Analysis Report",
         "=" * 70,
         f"File: {results.get('metadata', {}).get('filepath', 'N/A')}",
         f"Threat Score: {results.get('threat_score', 0)}% ({results.get('threat_level', 'N/A')})",

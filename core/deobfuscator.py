@@ -1,5 +1,5 @@
 """
-ThreatScope V3.5 — Auto-Deobfuscation Engine
+ThreatScope — Auto-Deobfuscation Engine
 Author: 0xSABRY
 
 Multi-layer recursive deobfuscation for malicious payloads:

@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Realtime Log Monitoring Daemon
+ThreatScope — Realtime Log Monitoring Daemon
 Author: 0xSABRY
 
 Watches live log directories for new/modified files and fires

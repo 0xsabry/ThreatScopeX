@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Correlation Rules Engine
+ThreatScope — Correlation Rules Engine
 Author: 0xSABRY
 
 Multi-stage attack correlation with time-window analysis,

@@ -1,5 +1,5 @@
 """
-ThreatScope V3 — Linux Log Parsers
+ThreatScope — Linux Log Parsers
 Author: 0xSABRY
 
 Dedicated parsers for Linux log sources:

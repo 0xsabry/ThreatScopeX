@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — AI Analysis Core
+ThreatScope — AI Analysis Core
 Author: 0xSABRY
 
 Attack Narrative Engine: Generates coherent attack stories from findings.

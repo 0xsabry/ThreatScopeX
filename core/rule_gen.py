@@ -1,5 +1,5 @@
 """
-ThreatScope V3.5 — Dynamic Rule Generator
+ThreatScope — Dynamic Rule Generator
 Author: 0xSABRY
 
 Automatically constructs valid Sigma YAML rules and YARA signatures

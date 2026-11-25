@@ -13,10 +13,10 @@ Thank you for your interest in contributing! ThreatScope welcomes contributions 
 ### Adding Detection Rules
 
 1. Fork the repository
-2. Add your rule(s) to the `PATTERNS` dictionary in `0xSABRY_ThreatScope.py`
+2. Add your rule(s) to the `PATTERNS` dictionary in `ThreatscopeX.py` (legacy desktop GUI — 308 rules). Rules for the web application belong in `BUILTIN_PATTERNS` in `core/analyzer.py` (57 patterns).
 3. Each rule must include: `patterns`, `severity`, `weight`, `category`, `desc`, `mitre`
-4. Add corresponding MITRE technique to `MITRE_DESCRIPTIONS` if new
-5. Run the validation script: `python validate_threatscope.py`
+4. Add corresponding MITRE technique to `MITRE_DESCRIPTIONS` in `ThreatscopeX.py` if new
+5. Validate the rules with the test suite (`python -m unittest discover -s tests -v`): `tests/test_legacy.py` compiles every regex in the legacy `PATTERNS` and checks the required fields, and `tests/test_analyzer_patterns.py` does the same for the web application's `BUILTIN_PATTERNS`. There is no separate `validate_threatscope.py` script.
 6. Submit a Pull Request
 
 ### Adding Sigma Rules
@@ -36,15 +36,34 @@ Thank you for your interest in contributing! ThreatScope welcomes contributions 
 - Follow PEP 8
 - Use descriptive variable names
 - Comment complex regex patterns
-- Keep all code in a single file for zero-dependency deployment
+- Keep new web-application code in the existing package layout (`core/`, `parsers/`, `intel/`, `ai/`, `export/`). The single-file `ThreatscopeX.py` is the legacy desktop GUI only.
 
 ## Testing
 
-Before submitting, ensure:
+Before submitting, install dependencies and run the test suite from the
+repository root:
 
-- `python -c "import py_compile; py_compile.compile('0xSABRY_ThreatScope.py', doraise=True)"` passes
-- All regex patterns compile without errors
-- GUI launches without errors: `python 0xSABRY_ThreatScope.py`
+```bash
+pip install -r requirements.txt
+python -m unittest discover -s tests -v
+```
+
+The suite uses Python's standard `unittest` (no extra test framework) and
+covers:
+
+- Current detection patterns: `tests/test_analyzer_patterns.py` validates
+  the 57 patterns in `core/analyzer.py` (`BUILTIN_PATTERNS`) — required
+  fields and regex compilation.
+- Current CLI: `tests/test_cli.py` checks `cli.py --help` and
+  `analyze --help`, then runs a real offline analysis of the committed
+  sample EVTX with JSON export.
+- Flask entry point: `tests/test_flask_app.py` uses Flask's test client
+  against the real `app` object (no server is launched).
+- Legacy desktop GUI: `tests/test_legacy.py` compiles `ThreatscopeX.py`
+  and validates its own 308 legacy rules. These checks are separate and
+  do not validate `app.py` or `cli.py`; the Tkinter GUI is never launched.
+
+CI (`.github/workflows/ci.yml`) runs the same checks on Python 3.11–3.15.
 
 ## License
 

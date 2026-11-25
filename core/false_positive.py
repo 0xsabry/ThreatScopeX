@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — False Positive Suppressor
+ThreatScope — False Positive Suppressor
 Author: 0xSABRY
 
 Machine-learning-based false positive identification that learns which

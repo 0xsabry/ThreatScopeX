@@ -1,5 +1,5 @@
 """
-ThreatScope V2 — Enhanced CLI Interface
+ThreatScope — Enhanced CLI Interface
 Author: 0xSABRY
 
 Powerful command-line interface for headless analysis, automation,
