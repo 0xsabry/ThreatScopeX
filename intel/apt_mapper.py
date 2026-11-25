@@ -361,7 +361,7 @@ class CVEFeed:
 
 
 # ============================================================
-# MITRE ATT&CK Data Helper — Extended (100+ techniques)
+# MITRE ATT&CK Data Helper — Extended (141 technique descriptions across all 14 tactics)
 # ============================================================
 MITRE_TECHNIQUE_DESCRIPTIONS = {
     # Reconnaissance (TA0043)

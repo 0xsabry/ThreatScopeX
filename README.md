@@ -12,8 +12,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/SigmaHQ-3000%2B%20Rules-blue?style=flat-square" alt="Sigma Rules"/>
-  <img src="https://img.shields.io/badge/MITRE%20ATT%26CK-100%2B%20Techniques-red?style=flat-square" alt="MITRE ATT&CK"/>
+  <img src="https://img.shields.io/badge/SigmaHQ-Corpus%20Integration-blue?style=flat-square" alt="Sigma Rules"/>
+  <img src="https://img.shields.io/badge/MITRE%20ATT%26CK-50%20Techniques-red?style=flat-square" alt="MITRE ATT&CK"/>
   <img src="https://img.shields.io/badge/Detection%20Rules-55%2B%20Categories-purple?style=flat-square" alt="Detection Rules"/>
   <img src="https://img.shields.io/badge/Enterprise%20Modules-6%20New-ff8c00?style=flat-square" alt="Enterprise Modules"/>
   <img src="https://img.shields.io/badge/Author-0xSABRY-ff1744?style=flat-square" alt="Author"/>
@@ -38,8 +38,8 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 
 - 🐧 **Full Linux Log Support** — Dedicated parsers for syslog, auth.log, journald, Apache/Nginx, and firewall logs
 - 📡 **Live Log Monitoring** — Real-time WebSocket-based streaming with instant detection
-- 🛡️ **20+ Built-in YARA Rules** — Malware signatures, webshells, exploit tools, suspicious documents, Linux threats
-- 🎯 **100+ MITRE ATT&CK Techniques** — Full coverage across all 14 tactics with sub-technique resolution
+- 🛡️ **44 Built-in YARA Rules** — Malware signatures, webshells, exploit tools, suspicious documents, Linux threats
+- 🎯 **50 MITRE ATT&CK Techniques** — Detections mapped across 12 tactics, with MITRE reference data covering all 14 tactics
 - ⚔️ **55+ Detection Categories** — 30 new patterns including cloud attacks, cryptojacking, fileless malware, and more
 - 🔐 **Security Hardened** — CSP headers, rate limiting, CSRF protection, input validation, audit logging
 - 🕵️ **20 APT Groups** — 10 new groups including Volt Typhoon, Scattered Spider, LockBit, ALPHV/BlackCat
@@ -50,8 +50,8 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 
 | Feature | ThreatScope V3.5 | Chainsaw | Others |
 |---------|:-:|:-:|:-:|
-| SigmaHQ Full Integration (3000+ Rules) | ✅ | ✅ | ❌ |
-| YARA Rules Engine (20+ Built-in) | ✅ | ✅ | ❌ |
+| SigmaHQ Corpus Integration (Runtime Sync) | ✅ | ✅ | ❌ |
+| YARA Rules Engine (44 Built-in) | ✅ | ✅ | ❌ |
 | Behavioral Chain Detection (15 Chains) | ✅ | ❌ | ❌ |
 | Multi-Platform (Win/Linux/Mac/Cloud) | ✅ | ❌ | ❌ |
 | Full Linux Log Parsing (5 Parsers) | ✅ | ❌ | ❌ |
@@ -66,7 +66,7 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 | APT Group Attribution (20 Groups) | ✅ | ❌ | ❌ |
 | Threat Intel Enrichment (VT/AbuseIPDB/OTX) | ✅ | ❌ | ❌ |
 | Modern Web Dashboard | ✅ | ❌ | ❌ |
-| 100+ MITRE ATT&CK Techniques | ✅ | ❌ | ❌ |
+| 50 MITRE ATT&CK Techniques (12 tactics) | ✅ | ❌ | ❌ |
 | Security Hardened (CSP/Rate Limiting/Audit) | ✅ | ❌ | ❌ |
 | False Positive Suppression | ✅ | ❌ | ❌ |
 | Training Mode for Analysts | ✅ | ❌ | ❌ |
@@ -128,7 +128,7 @@ ThreatScope V3.5 is a **world-class DFIR and threat detection platform** designe
 ### 🔍 Detection Power
 - **55+ Built-in Detection Categories** — Advanced regex patterns covering cloud, Linux, network, and application attacks
 - **SigmaHQ Integration** — Auto-sync and parse 3000+ Sigma rules with full condition support
-- **YARA Scanning** — 20+ built-in rules for malware, webshells, exploit tools, and suspicious documents
+- **YARA Scanning** — 44 built-in rules for malware, webshells, exploit tools, and suspicious documents
 - **Behavioral Chain Detection** — 15 multi-stage attack patterns with time-window correlation
 - **30 Correlation Rules** — Kill chain analysis and score boosting
 
@@ -341,7 +341,7 @@ ThreatscopeX/
 │   └── forensic_parsers.py     # V3.5: Deep forensics artifact parsers
 ├── intel/
 │   ├── enrichment.py           # VT/AbuseIPDB/OTX enrichment
-│   └── apt_mapper.py           # 20 APT groups + 100+ MITRE techniques
+│   └── apt_mapper.py           # 20 APT groups + 141-technique MITRE reference data
 ├── ai/
 │   ├── ai_core.py              # Narrative, Copilot, Training
 │   └── agentic_core.py         # V3.5: Hypothesis-driven AI investigation
@@ -373,7 +373,7 @@ ThreatscopeX/
 
 ## 🎯 MITRE ATT&CK Coverage
 
-ThreatScope V3.5 maps findings to **100+ MITRE ATT&CK techniques** across all **14 tactics** and provides:
+ThreatScope V3.5 maps findings to **50 MITRE ATT&CK techniques** across **12 tactics** (MITRE reference data covers all 14 tactics) and provides:
 - Interactive heatmap visualization
 - APT group attribution (20 groups)
 - Kill chain coverage analysis
